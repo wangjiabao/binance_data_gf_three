@@ -1,0 +1,13 @@
+
+# CLI tool, only in development environment.
+# https://goframe.org/pages/viewpage.action?pageId=3673173
+gfcli:
+  docker:
+    build: "-a amd64 -s linux -p temp -ew"
+    tagPrefixes:
+      - my.image.pub/my-app
+  gen:
+    dao:
+      - link: "mysql:root:wang111000@tcp(127.0.0.1:3306)/binance_data"
+        tables: "new_binance_trader,new_binance_trade_history,new_binance_position_history,new_binance_position,trader,zy_trader_cookie,trader_position,new_user_bind_trader_two,new_user_order_two,new_user_order_err_two,new_user,lh_coin_symbol,new_user_info,new_trader_info,key_position"
+        jsonCase: "CamelLower"
