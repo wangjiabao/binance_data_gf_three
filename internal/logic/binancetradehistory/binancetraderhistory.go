@@ -3809,6 +3809,18 @@ type orderInfo struct {
 	Msg  string
 }
 
+func requestPlatOrder(plat string, symbol string, side string, orderType string, positionSide string, quantity string, apiKey string, secretKey string) (*binanceOrder, *orderInfo, error) {
+	var (
+		err error
+	)
+
+	if "binance" == plat {
+		return requestBinanceOrder(symbol, side, orderType, positionSide, quantity, apiKey, secretKey)
+	}
+
+	return nil, nil, err
+}
+
 func requestBinanceOrder(symbol string, side string, orderType string, positionSide string, quantity string, apiKey string, secretKey string) (*binanceOrder, *orderInfo, error) {
 	var (
 		client       *http.Client
