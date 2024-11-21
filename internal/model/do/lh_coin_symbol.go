@@ -19,4 +19,10 @@ type LhCoinSymbol struct {
 	PricePrecision    interface{} // 小数点精度
 	QuantityPrecision interface{} //
 	IsOpen            interface{} //
+	Plat              interface{} //
+	LotSz             interface{} //
+	CtVal             interface{} //
+	VolumePlace       interface{} //
+	SizeMultiplier    interface{} //
+	QuantoMultiplier  interface{} //
 }

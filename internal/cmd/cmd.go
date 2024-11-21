@@ -59,6 +59,9 @@ var (
 		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
 			serviceBinanceTrader := service.BinanceTraderHistory()
 
+			//serviceBinanceTrader.PullPlatCoinInfo(ctx)
+			//return nil
+
 			// 初始化根据数据库现有人
 			//if !serviceBinanceTrader.InitGlobalInfo(ctx) {
 			//	fmt.Println("初始化失败，fail")
@@ -107,7 +110,7 @@ var (
 			//gtimer.AddSingleton(ctx, time.Second*15, handle5)
 
 			// 任务1 同步订单，死循环
-			serviceBinanceTrader.PullAndOrderNewGuiTu(ctx)
+			//serviceBinanceTrader.PullAndOrderNewGuiTu(ctx)
 
 			// 阻塞
 			select {}

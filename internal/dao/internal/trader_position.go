@@ -24,6 +24,7 @@ type TraderPositionColumns struct {
 	Symbol         string //
 	PositionSide   string //
 	PositionAmount string //
+	MarkPrice      string //
 	CreatedAt      string //
 	UpdatedAt      string //
 }
@@ -34,6 +35,7 @@ var traderPositionColumns = TraderPositionColumns{
 	Symbol:         "symbol",
 	PositionSide:   "position_side",
 	PositionAmount: "position_amount",
+	MarkPrice:      "mark_price",
 	CreatedAt:      "created_at",
 	UpdatedAt:      "updated_at",
 }

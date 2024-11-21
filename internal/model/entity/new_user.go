@@ -22,7 +22,9 @@ type NewUser struct {
 	CreatedAt           *gtime.Time `json:"createdAt"           ` //
 	UpdatedAt           *gtime.Time `json:"updatedAt"           ` //
 	BinanceId           int64       `json:"binanceId"           ` //
+	OkxId               string      `json:"okxId"               ` //
 	NeedInit            int         `json:"needInit"            ` //
 	Num                 float64     `json:"num"                 ` //
-	ReInit              int         `json:"reInit"              ` //
+	Plat                string      `json:"plat"                ` //
+	OkxPass             string      `json:"okxPass"             ` //
 }

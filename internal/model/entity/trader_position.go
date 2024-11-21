@@ -14,6 +14,7 @@ type TraderPosition struct {
 	Symbol         string      `json:"symbol"         ` //
 	PositionSide   string      `json:"positionSide"   ` //
 	PositionAmount float64     `json:"positionAmount" ` //
+	MarkPrice      float64     `json:"markPrice"      ` //
 	CreatedAt      *gtime.Time `json:"createdAt"      ` //
 	UpdatedAt      *gtime.Time `json:"updatedAt"      ` //
 }

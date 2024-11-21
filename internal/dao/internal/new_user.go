@@ -32,9 +32,11 @@ type NewUserColumns struct {
 	CreatedAt           string //
 	UpdatedAt           string //
 	BinanceId           string //
+	OkxId               string //
 	NeedInit            string //
 	Num                 string //
-	ReInit              string //
+	Plat                string //
+	OkxPass             string //
 }
 
 // newUserColumns holds the columns for table new_user.
@@ -51,9 +53,11 @@ var newUserColumns = NewUserColumns{
 	CreatedAt:           "created_at",
 	UpdatedAt:           "updated_at",
 	BinanceId:           "binance_id",
+	OkxId:               "okx_id",
 	NeedInit:            "need_init",
 	Num:                 "num",
-	ReInit:              "re_init",
+	Plat:                "plat",
+	OkxPass:             "okx_pass",
 }
 
 // NewNewUserDao creates and returns a new DAO object for table data access.

@@ -16,6 +16,7 @@ type TraderPosition struct {
 	Symbol         interface{} //
 	PositionSide   interface{} //
 	PositionAmount interface{} //
+	MarkPrice      interface{} //
 	CreatedAt      *gtime.Time //
 	UpdatedAt      *gtime.Time //
 }

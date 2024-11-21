@@ -24,7 +24,9 @@ type NewUser struct {
 	CreatedAt           *gtime.Time //
 	UpdatedAt           *gtime.Time //
 	BinanceId           interface{} //
+	OkxId               interface{} //
 	NeedInit            interface{} //
 	Num                 interface{} //
-	ReInit              interface{} //
+	Plat                interface{} //
+	OkxPass             interface{} //
 }

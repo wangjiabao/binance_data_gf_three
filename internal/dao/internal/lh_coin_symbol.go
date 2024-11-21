@@ -28,6 +28,12 @@ type LhCoinSymbolColumns struct {
 	PricePrecision    string // 小数点精度
 	QuantityPrecision string //
 	IsOpen            string //
+	Plat              string //
+	LotSz             string //
+	CtVal             string //
+	VolumePlace       string //
+	SizeMultiplier    string //
+	QuantoMultiplier  string //
 }
 
 // lhCoinSymbolColumns holds the columns for table lh_coin_symbol.
@@ -40,6 +46,12 @@ var lhCoinSymbolColumns = LhCoinSymbolColumns{
 	PricePrecision:    "price_precision",
 	QuantityPrecision: "quantity_precision",
 	IsOpen:            "is_open",
+	Plat:              "plat",
+	LotSz:             "lot_sz",
+	CtVal:             "ct_val",
+	VolumePlace:       "volume_place",
+	SizeMultiplier:    "size_multiplier",
+	QuantoMultiplier:  "quanto_multiplier",
 }
 
 // NewLhCoinSymbolDao creates and returns a new DAO object for table data access.

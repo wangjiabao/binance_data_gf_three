@@ -21,7 +21,9 @@ type (
 		GetGlobalInfo(ctx context.Context)
 		// UpdateCoinInfo 初始化信息
 		UpdateCoinInfo(ctx context.Context) bool
-		// UpdateKeyPosition 初始化信息
+		// PullPlatCoinInfo 获取平台的币种信息
+		PullPlatCoinInfo(ctx context.Context) bool
+		// UpdateKeyPosition 更新keyPosition信息
 		UpdateKeyPosition(ctx context.Context) bool
 		// InitGlobalInfo 初始化信息
 		InitGlobalInfo(ctx context.Context) bool
