@@ -1554,13 +1554,13 @@ func (s *sBinanceTraderHistory) GetGlobalInfo(ctx context.Context) {
 	//	return true
 	//})
 
-	for _, vBinancePositionMap := range binancePositionMap {
-		if IsEqual(vBinancePositionMap.PositionAmount, 0) {
-			continue
-		}
-
-		fmt.Println("龟兔，带单员仓位，信息:", vBinancePositionMap)
-	}
+	//for _, vBinancePositionMap := range binancePositionMap {
+	//	if IsEqual(vBinancePositionMap.PositionAmount, 0) {
+	//		continue
+	//	}
+	//
+	//	fmt.Println("龟兔，带单员仓位，信息:", vBinancePositionMap)
+	//}
 }
 
 //// InitGlobalInfo 初始化信息
