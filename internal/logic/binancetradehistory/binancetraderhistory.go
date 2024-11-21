@@ -2200,28 +2200,42 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 					}
 
 					var (
-						tmpQty        float64
-						okxRes        *okxOrderInfo
-						side          string
-						symbol        = symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).Symbol
-						positionSide  string
-						quantity      string
-						quantityFloat float64
+						tmpQty          float64
+						okxRes          *okxOrderInfo
+						side            string
+						sideLow         string
+						symbol          = symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).Symbol
+						positionSide    string
+						positionSideLow string
+						quantity        string
+						quantityFloat   float64
 					)
 
 					if "LONG" == tmpInsertData.PositionSide {
 						positionSide = "LONG"
 						side = "BUY"
+
+						positionSideLow = "long"
+						sideLow = "buy"
 					} else if "SHORT" == tmpInsertData.PositionSide {
 						positionSide = "SHORT"
 						side = "SELL"
+
+						positionSideLow = "short"
+						sideLow = "sell"
 					} else if "BOTH" == tmpInsertData.PositionSide {
 						if math.Signbit(tmpInsertData.PositionAmount) {
 							positionSide = "SHORT"
 							side = "SELL"
+
+							positionSideLow = "short"
+							sideLow = "sell"
 						} else {
 							positionSide = "LONG"
 							side = "BUY"
+
+							positionSideLow = "long"
+							sideLow = "buy"
 						}
 					} else {
 						fmt.Println("龟兔，新增用户，无效信息，信息", vInsertData)
@@ -2242,13 +2256,13 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 
 					quantity = strconv.FormatFloat(quantityFloat, 'f', -1, 64)
 
-					okxRes, err = requestOkxOrder(symbol, side, positionSide, quantity, vTmpUserMap.ApiKey, vTmpUserMap.ApiSecret, vTmpUserMap.OkxPass)
+					okxRes, err = requestOkxOrder(symbol, sideLow, positionSideLow, quantity, vTmpUserMap.ApiKey, vTmpUserMap.ApiSecret, vTmpUserMap.OkxPass)
 					if nil != err {
 						fmt.Println("初始化，okx， 下单错误", err, symbol, side, positionSide, quantity, okxRes)
 						continue
 					}
 
-					if 0 != okxRes.Code {
+					if "0" != okxRes.Code {
 						fmt.Println("初始化，okx， 下单错误1", err, symbol, side, positionSide, quantity, okxRes)
 						continue
 					}
@@ -4132,7 +4146,7 @@ func generateSignature(payload, secretKey string) string {
 }
 
 type okxOrderInfo struct {
-	Code int64
+	Code string
 	Msg  string
 	Data []*okxOrderInfoData
 }
