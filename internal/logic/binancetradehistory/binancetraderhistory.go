@@ -2650,6 +2650,11 @@ func (s *sBinanceTraderHistory) PullAndOrderNewGuiTu(ctx context.Context) {
 		globalUsers.Iterator(func(k interface{}, v interface{}) bool {
 			tmpUser := v.(*entity.NewUser)
 
+			// todo
+			if "binance" != tmpUser.Plat {
+				return true
+			}
+
 			var tmpUserBindTradersAmount float64
 			if !baseMoneyUserAllMap.Contains(int(tmpUser.Id)) {
 				fmt.Println("龟兔，保证金不存在：", tmpUser)

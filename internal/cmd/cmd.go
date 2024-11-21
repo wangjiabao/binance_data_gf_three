@@ -104,13 +104,13 @@ var (
 			gtimer.AddSingleton(ctx, time.Second*100, handle4)
 
 			// 15秒/次，测试
-			//handle5 := func(ctx context.Context) {
-			//	serviceBinanceTrader.GetGlobalInfo(ctx)
-			//}
-			//gtimer.AddSingleton(ctx, time.Second*15, handle5)
+			handle5 := func(ctx context.Context) {
+				serviceBinanceTrader.GetGlobalInfo(ctx)
+			}
+			gtimer.AddSingleton(ctx, time.Second*15, handle5)
 
 			// 任务1 同步订单，死循环
-			//serviceBinanceTrader.PullAndOrderNewGuiTu(ctx)
+			serviceBinanceTrader.PullAndOrderNewGuiTu(ctx)
 
 			// 阻塞
 			select {}
