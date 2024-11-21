@@ -1543,16 +1543,16 @@ func (s *sBinanceTraderHistory) GetGlobalInfo(ctx context.Context) {
 		return true
 	})
 
-	fmt.Println("龟兔，保证金，测试结果:", baseMoneyGuiTu)
-	baseMoneyUserAllMap.Iterator(func(k int, v interface{}) bool {
-		fmt.Println("龟兔，保证金，用户，测试结果:", k, v)
-		return true
-	})
+	//fmt.Println("龟兔，保证金，测试结果:", baseMoneyGuiTu)
+	//baseMoneyUserAllMap.Iterator(func(k int, v interface{}) bool {
+	//	fmt.Println("龟兔，保证金，用户，测试结果:", k, v)
+	//	return true
+	//})
 
-	globalUsers.Iterator(func(k interface{}, v interface{}) bool {
-		fmt.Println("龟兔，用户信息:", v.(*entity.NewUser))
-		return true
-	})
+	//globalUsers.Iterator(func(k interface{}, v interface{}) bool {
+	//	fmt.Println("龟兔，用户信息:", v.(*entity.NewUser))
+	//	return true
+	//})
 
 	for _, vBinancePositionMap := range binancePositionMap {
 		if IsEqual(vBinancePositionMap.PositionAmount, 0) {
