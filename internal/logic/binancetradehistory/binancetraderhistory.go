@@ -1927,22 +1927,27 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 			return true
 		}
 
-		if 0 >= vGlobalUsers.BinanceId {
-			fmt.Println("龟兔，变更保证金，用户数据错误：", vGlobalUsers)
-			return true
-		}
-
 		// todo gate okx bitget
 		var (
 			detail string
 		)
 		if "binance" == vGlobalUsers.Plat {
+			if 0 >= vGlobalUsers.BinanceId {
+				fmt.Println("龟兔，变更保证金，用户数据错误：", vGlobalUsers)
+				return true
+			}
+
 			detail, err = requestBinanceTraderDetail(uint64(vGlobalUsers.BinanceId))
 			if nil != err {
 				fmt.Println("龟兔，拉取保证金失败：", err, vGlobalUsers)
 				return true
 			}
 		} else if "okx" == vGlobalUsers.Plat {
+			if 0 >= len(vGlobalUsers.OkxId) {
+				fmt.Println("龟兔，变更保证金，用户数据错误：", vGlobalUsers)
+				return true
+			}
+
 			var (
 				okxInfo []*okxTrader
 			)
@@ -4147,7 +4152,7 @@ func requestOkxOrder(symbol string, side string, positionSide string, quantity s
 	)
 	// 请求信息
 	method := "POST"
-	baseURL := "https://www.okex.com"
+	baseURL := "https://www.okx.com"
 	requestPath := "/api/v5/trade/order"
 	body := map[string]interface{}{
 		"instId":  symbol + "-USDT-SWAP",
