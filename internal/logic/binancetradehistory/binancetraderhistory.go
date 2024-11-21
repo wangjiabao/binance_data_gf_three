@@ -2264,6 +2264,9 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 
 					if "0" != okxRes.Code {
 						fmt.Println("初始化，okx， 下单错误1", err, symbol, side, positionSide, quantity, okxRes)
+						for _, vData := range okxRes.Data {
+							fmt.Println("初始化，okx， 下单错误1, 明细", vData)
+						}
 						continue
 					}
 
@@ -4146,13 +4149,20 @@ func generateSignature(payload, secretKey string) string {
 }
 
 type okxOrderInfo struct {
-	Code string
-	Msg  string
-	Data []*okxOrderInfoData
+	Code    string              `json:"code"`    // 主请求返回状态码，"0" 表示成功
+	Msg     string              `json:"msg"`     // 主请求的消息，通常为空
+	Data    []*okxOrderInfoData `json:"data"`    // 批量订单的结果列表
+	InTime  string              `json:"inTime"`  // 请求进入时间戳
+	OutTime string              `json:"outTime"` // 请求完成时间戳
 }
 
 type okxOrderInfoData struct {
-	OrdId string
+	ClOrdId string `json:"clOrdId"` // 客户端订单 ID
+	OrdId   string `json:"ordId"`   // 服务器生成的订单 ID
+	Tag     string `json:"tag"`     // 标签，通常为空
+	Ts      string `json:"ts"`      // 时间戳，订单生成的时间
+	SCode   string `json:"sCode"`   // 订单状态码，"0" 表示成功
+	SMsg    string `json:"sMsg"`    // 状态消息，通常为空或错误原因
 }
 
 func requestOkxOrder(symbol string, side string, positionSide string, quantity string, apiKey string, secretKey string, pass string) (*okxOrderInfo, error) {
