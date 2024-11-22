@@ -1588,7 +1588,35 @@ func (s *sBinanceTraderHistory) UpdateCoinInfo(ctx context.Context) bool {
 	var (
 		err     error
 		symbols []*entity.LhCoinSymbol
+		//bscSymbols []*bscSymbolInfo
 	)
+	//bscSymbols, err = requestBscCoinInfo()
+	//if nil != err || 0 >= len(bscSymbols) {
+	//	fmt.Println("龟兔，初始化，bsc，币种：", err)
+	//	return false
+	//}
+
+	//for _, vbscSymbols := range bscSymbols {
+	//	err = g.DB().Transaction(context.TODO(), func(ctx context.Context, tx gdb.TX) error {
+	//		_, err = tx.Ctx(ctx).Insert("lh_coin_symbol", &do.LhCoinSymbol{
+	//			Symbol:            vbscSymbols.BaseAsset,
+	//			IsOpen:            1,
+	//			QuantityPrecision: vbscSymbols.QuantityPrecision,
+	//			PricePrecision:    vbscSymbols.PricePrecision,
+	//			Coin:              strings.ToLower(vbscSymbols.BaseAsset),
+	//		})
+	//		if nil != err {
+	//			return err
+	//		}
+	//
+	//		return nil
+	//	})
+	//	if nil != err {
+	//		fmt.Println("bsc coin insert err", err, vbscSymbols)
+	//		continue
+	//	}
+	//}
+
 	err = g.Model("lh_coin_symbol").Ctx(ctx).Scan(&symbols)
 	if nil != err || 0 >= len(symbols) {
 		fmt.Println("龟兔，初始化，币种，数据库查询错误：", err)
@@ -1927,7 +1955,6 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 			return true
 		}
 
-		// todo gate okx bitget
 		var (
 			detail string
 		)
@@ -1953,7 +1980,7 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 			)
 			okxInfo, err = requestOkxTraderDetail(vGlobalUsers.OkxId)
 			if nil != err {
-				fmt.Println("龟兔，拉取保证金失败：", err, vGlobalUsers)
+				fmt.Println("龟兔，拉取保证金失败，okx：", err, vGlobalUsers)
 				return true
 			}
 
@@ -1966,6 +1993,33 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 					}
 				}
 			}
+		} else if "bitget" == vGlobalUsers.Plat {
+			if 0 >= len(vGlobalUsers.OkxId) {
+				fmt.Println("龟兔，变更保证金，用户数据错误：", vGlobalUsers)
+				return true
+			}
+
+			detail, err = requestBitGetTraderDetail(vGlobalUsers.OkxId)
+			if nil != err {
+				fmt.Println("龟兔，拉取保证金失败，bitget：", err, vGlobalUsers)
+				return true
+			}
+
+		} else if "gateio" == vGlobalUsers.Plat {
+			if 0 >= len(vGlobalUsers.OkxId) {
+				fmt.Println("龟兔，变更保证金，用户数据错误：", vGlobalUsers)
+				return true
+			}
+
+			detail, err = requestGateTraderDetail(vGlobalUsers.OkxId)
+			if nil != err {
+				fmt.Println("龟兔，拉取保证金失败，gate：", err, vGlobalUsers)
+				return true
+			}
+
+		} else {
+			fmt.Println("获取平台保证金，错误用户信息", vGlobalUsers)
+			return true
 		}
 
 		if 0 < len(detail) {
@@ -1986,6 +2040,8 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 					baseMoneyUserAllMap.Set(int(vGlobalUsers.Id), tmp)
 				}
 			}
+		} else {
+			fmt.Println("保证金为0", vGlobalUsers)
 		}
 
 		time.Sleep(300 * time.Millisecond)
@@ -2043,22 +2099,31 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 			// 获取保证金
 			var tmpUserBindTradersAmount float64
 
-			// todo gate okx bitget
 			var (
 				detail string
 			)
 			if "binance" == vTmpUserMap.Plat {
+				if 0 >= vTmpUserMap.BinanceId {
+					fmt.Println("龟兔，变更保证金，用户数据错误：", vTmpUserMap)
+					continue
+				}
+
 				detail, err = requestBinanceTraderDetail(uint64(vTmpUserMap.BinanceId))
 				if nil != err {
 					fmt.Println("龟兔，新增用户，拉取保证金失败：", err, vTmpUserMap)
 				}
 			} else if "okx" == vTmpUserMap.Plat {
+				if 0 >= len(vTmpUserMap.OkxId) {
+					fmt.Println("龟兔，变更保证金，用户数据错误：", vTmpUserMap)
+					continue
+				}
+
 				var (
 					okxInfo []*okxTrader
 				)
 				okxInfo, err = requestOkxTraderDetail(vTmpUserMap.OkxId)
 				if nil != err {
-					fmt.Println("龟兔，拉取保证金失败：", err, vTmpUserMap)
+					fmt.Println("龟兔，拉取保证金失败，okx：", err, vTmpUserMap)
 				}
 
 				if nil != okxInfo && 0 < len(okxInfo) {
@@ -2070,6 +2135,31 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 						}
 					}
 				}
+			} else if "bitget" == vTmpUserMap.Plat {
+				if 0 >= len(vTmpUserMap.OkxId) {
+					fmt.Println("龟兔，变更保证金，用户数据错误：", vTmpUserMap)
+					continue
+				}
+
+				detail, err = requestBitGetTraderDetail(vTmpUserMap.OkxId)
+				if nil != err {
+					fmt.Println("龟兔，拉取保证金失败，bitget：", err, vTmpUserMap)
+					continue
+				}
+			} else if "gateio" == vTmpUserMap.Plat {
+				if 0 >= len(vTmpUserMap.OkxId) {
+					fmt.Println("龟兔，变更保证金，用户数据错误：", vTmpUserMap)
+					continue
+				}
+
+				detail, err = requestGateTraderDetail(vTmpUserMap.OkxId)
+				if nil != err {
+					fmt.Println("龟兔，拉取保证金失败， gate：", err, vTmpUserMap)
+					continue
+				}
+			} else {
+				fmt.Println("初始化，错误用户信息", vTmpUserMap)
+				continue
 			}
 
 			if 0 < len(detail) {
@@ -2284,6 +2374,104 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 						orderMap.Set(tmpInsertData.Symbol+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
 					}
 				} else if "bitget" == vTmpUserMap.Plat {
+					// api规定1s一单
+					if 0 > symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).VolumePlace || 0 >= symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).SizeMultiplier {
+						fmt.Println("龟兔，新增用户，代币信息错误，信息", symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol), vInsertData)
+						continue
+					}
+
+					var (
+						tmpQty float64
+						side   string
+						//sideLow         string
+						symbol       = symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).Symbol + "USDT"
+						positionSide string
+						//positionSideLow string
+						quantity      string
+						quantityFloat float64
+					)
+
+					if "LONG" == tmpInsertData.PositionSide {
+						positionSide = "LONG"
+						side = "BUY"
+
+						//positionSideLow = "long"
+						//sideLow = "buy"
+					} else if "SHORT" == tmpInsertData.PositionSide {
+						positionSide = "SHORT"
+						side = "SELL"
+
+						//positionSideLow = "short"
+						//sideLow = "sell"
+					} else if "BOTH" == tmpInsertData.PositionSide {
+						if math.Signbit(tmpInsertData.PositionAmount) {
+							positionSide = "SHORT"
+							side = "SELL"
+
+							//positionSideLow = "short"
+							//sideLow = "sell"
+						} else {
+							positionSide = "LONG"
+							side = "BUY"
+
+							//positionSideLow = "long"
+							//sideLow = "buy"
+						}
+					} else {
+						fmt.Println("龟兔，新增用户，无效信息，信息", vInsertData)
+						continue
+					}
+					tmpPositionAmount := math.Abs(tmpInsertData.PositionAmount)
+					// 本次 代单员币的数量 * (用户保证金/代单员保证金)
+					tmpQty = tmpPositionAmount * tmpUserBindTradersAmount / tmpTraderBaseMoney // 本次开单数量
+
+					// 转化为张数=币的数量/每张币的数量
+					tmpQtyOkx := tmpQty / symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).CtVal
+					// 按张的精度转化，
+					quantityFloat = math.Round(tmpQtyOkx/symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).LotSz) * symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).LotSz
+					if lessThanOrEqualZero(quantityFloat, 0, 1e-7) {
+						fmt.Println("龟兔，新增用户，不足，信息", tmpQty, symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol), vInsertData)
+						continue
+					}
+
+					quantity = strconv.FormatFloat(quantityFloat, 'f', -1, 64)
+
+					var (
+						bitGetRes *bitGetOrderResponse
+					)
+					bitGetRes, err = bitGetPlaceOrder(vTmpUserMap.ApiKey, vTmpUserMap.ApiSecret, vTmpUserMap.OkxPass, &bitGetOrderRequest{
+						Symbol:      symbol,
+						ProductType: "",
+						MarginMode:  "",
+						MarginCoin:  "",
+						Size:        "",
+						Price:       "",
+						Side:        "",
+						TradeSide:   "",
+						OrderType:   "",
+						Force:       "",
+						ClientOid:   "",
+					})
+					if nil != err || "00000" != bitGetRes.Code {
+						fmt.Println("初始化，bitget， 下单错误", err, symbol, side, positionSide, quantity, bitGetRes)
+						continue
+					}
+
+					if 0 >= len(bitGetRes.Data.OrderId) {
+						fmt.Println("初始化，bitget， 下单错误2", err, symbol, side, positionSide, quantity, bitGetRes)
+						continue
+					}
+
+					tmpExecutedQty := quantityFloat
+					// 不存在新增，这里只能是开仓
+					if !orderMap.Contains(tmpInsertData.Symbol + "&" + positionSide + "&" + strUserId) {
+						orderMap.Set(tmpInsertData.Symbol+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					} else {
+						tmpExecutedQty += orderMap.Get(tmpInsertData.Symbol + "&" + positionSide + "&" + strUserId).(float64)
+						orderMap.Set(tmpInsertData.Symbol+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					}
+
+					time.Sleep(1 * time.Second)
 				}
 			}
 
@@ -4246,6 +4434,107 @@ func requestOkxOrder(symbol string, side string, positionSide string, quantity s
 	return o, nil
 }
 
+// OrderRequest 定义下单的请求结构体
+type bitGetOrderRequest struct {
+	Symbol      string `json:"symbol"`
+	ProductType string `json:"productType"`
+	MarginMode  string `json:"marginMode"`
+	MarginCoin  string `json:"marginCoin"`
+	Size        string `json:"size"`
+	Price       string `json:"price"`
+	Side        string `json:"side"`
+	TradeSide   string `json:"tradeSide"`
+	OrderType   string `json:"orderType"`
+	Force       string `json:"force"`
+	ClientOid   string `json:"clientOid"`
+}
+
+// OrderResponse 定义响应结构体
+type bitGetOrderResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"msg"`
+	Data    struct {
+		ClientOid string `json:"clientOid"`
+		OrderId   string `json:"orderId"`
+	} `json:"data"`
+}
+
+// bitGetGenerateSignature 生成 Bitget API 签名
+func bitGetGenerateSignature(secret, method, requestPath, timestamp, body string) (string, error) {
+	message := timestamp + method + requestPath + body
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, err := mac.Write([]byte(message))
+	if err != nil {
+		return "", fmt.Errorf("failed to write message for HMAC: %v", err)
+	}
+	return base64.StdEncoding.EncodeToString(mac.Sum(nil)), nil
+}
+
+// placeOrder 发送下单请求
+func bitGetPlaceOrder(apiKey, apiSecret, passphrase string, order *bitGetOrderRequest) (*bitGetOrderResponse, error) {
+	baseURL := "https://api.bitget.com"
+	method := "POST"
+	requestPath := "/api/v2/mix/order/place-order"
+	timestamp := fmt.Sprintf("%d", time.Now().UnixMilli())
+
+	// 序列化请求体
+	bodyBytes, err := json.Marshal(order)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize order request: %v", err)
+	}
+	body := string(bodyBytes)
+
+	// 生成签名
+	signature, err := bitGetGenerateSignature(apiSecret, method, requestPath, timestamp, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate signature: %v", err)
+	}
+
+	// 构造 HTTP 请求
+	urlReq := baseURL + requestPath
+	req, err := http.NewRequest(method, urlReq, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %v", err)
+	}
+
+	// 设置请求头
+	req.Header.Set("ACCESS-KEY", apiKey)
+	req.Header.Set("ACCESS-SIGN", signature)
+	req.Header.Set("ACCESS-TIMESTAMP", timestamp)
+	req.Header.Set("ACCESS-PASSPHRASE", passphrase)
+	req.Header.Set("locale", "zh-CN")
+	req.Header.Set("Content-Type", "application/json")
+
+	// 发送请求
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send HTTP request: %v", err)
+	}
+	// 结果
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(resp.Body)
+
+	// 读取响应
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	// 解析响应
+	var orderResponse *bitGetOrderResponse
+	err = json.Unmarshal(respBody, orderResponse)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse response JSON: %v", err)
+	}
+
+	return orderResponse, nil
+}
+
 type BinanceTraderDetailResp struct {
 	Data *BinanceTraderDetailData
 }
@@ -4305,7 +4594,7 @@ type okxResponse struct {
 }
 
 type okxTrader struct {
-	NonPeriodicPart []okxMetric `json:"nonPeriodicPart"`
+	NonPeriodicPart []*okxMetric `json:"nonPeriodicPart"`
 }
 
 type okxMetric struct {
@@ -4360,6 +4649,104 @@ func requestOkxTraderDetail(portfolioId string) ([]*okxTrader, error) {
 	}
 
 	return l.Data, nil
+}
+
+type bitGetTraderResponse struct {
+	Code string `json:"code"` // 响应代码
+	Data struct {
+		TotalEquity string `json:"totalEquity"` // 总资产
+	} `json:"data"`
+}
+
+// 拉取交易员交易历史
+func requestBitGetTraderDetail(portfolioId string) (string, error) {
+	var (
+		resp   *http.Response
+		res    string
+		b      []byte
+		err    error
+		apiUrl = "https://www.bitget.com/v1/trigger/trace/public/traderDetailPageV2"
+	)
+
+	// 构造请求
+	contentType := "application/json"
+	data := `{"languageType":1,"traderUid":"` + portfolioId + `"}`
+	resp, err = http.Post(apiUrl, contentType, strings.NewReader(data))
+	if err != nil {
+		return res, err
+	}
+
+	// 结果
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(resp.Body)
+
+	b, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return res, err
+	}
+
+	var l *bitGetTraderResponse
+	err = json.Unmarshal(b, &l)
+	if err != nil {
+		fmt.Println(err)
+		return res, err
+	}
+
+	return l.Data.TotalEquity, nil
+}
+
+type gateTraderResponse struct {
+	Code int `json:"code"` // 响应代码
+	Data struct {
+		Profit struct {
+			TotalInvest string `json:"total_invest"` // 总资产
+		} `json:"profit"` // 响应代码
+	} `json:"data"` // 数据列表
+}
+
+// 拉取交易员交易历史
+func requestGateTraderDetail(portfolioId string) (string, error) {
+	var (
+		resp   *http.Response
+		res    string
+		b      []byte
+		err    error
+		apiUrl = "https://www.gate.io/api/copytrade/copy_trading/trader/detail/" + portfolioId + "?leaderId=" + portfolioId
+	)
+
+	// 构造请求
+	resp, err = http.Get(apiUrl)
+	if err != nil {
+		return res, err
+	}
+
+	// 结果
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(resp.Body)
+
+	b, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return res, err
+	}
+
+	var l *gateTraderResponse
+	err = json.Unmarshal(b, &l)
+	if err != nil {
+		fmt.Println(err)
+		return res, err
+	}
+
+	return l.Data.Profit.TotalInvest, nil
 }
 
 type OkxCoinInfoRes struct {
@@ -4517,4 +4904,58 @@ func requestGateCoinInfo() ([]*GateCoinInfoData, error) {
 	}
 
 	return res, nil
+}
+
+// SymbolInfo 定义交易对信息结构
+type bscSymbolInfo struct {
+	BaseAsset         string `json:"baseAsset"`
+	Symbol            string `json:"symbol"`
+	PricePrecision    int    `json:"pricePrecision"`
+	QuantityPrecision int    `json:"quantityPrecision"`
+}
+
+// ExchangeInfo 定义返回的主结构
+type bscExchangeInfo struct {
+	Symbols []*bscSymbolInfo `json:"symbols"`
+}
+
+// 拉取gate币种
+func requestBscCoinInfo() ([]*bscSymbolInfo, error) {
+	var (
+		resp   *http.Response
+		res    = make([]*bscSymbolInfo, 0)
+		b      []byte
+		err    error
+		apiUrl = "https://fapi.binance.com/fapi/v1/exchangeInfo"
+	)
+
+	// 构造请求
+	resp, err = http.Get(apiUrl)
+	if err != nil {
+		return res, err
+	}
+
+	// 结果
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(resp.Body)
+
+	b, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return res, err
+	}
+
+	var l *bscExchangeInfo
+	//fmt.Println(string(b))
+	err = json.Unmarshal(b, &l)
+	if err != nil {
+		fmt.Println(err)
+		return res, err
+	}
+
+	return l.Symbols, nil
 }
