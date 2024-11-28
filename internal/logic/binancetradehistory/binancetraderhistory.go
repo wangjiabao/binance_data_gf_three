@@ -3578,6 +3578,7 @@ func getBinancePositionInfo(apiK, apiS string) []*BinancePosition {
 		return nil
 	}
 
+	fmt.Println(string(body))
 	// 解析响应
 	var o *BinanceResponse
 	err = json.Unmarshal(body, &o)
