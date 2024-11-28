@@ -13,12 +13,7 @@ func main() {
 		err error
 	)
 
-	//err = cmd.Main.AddCommand(cmd.Trader)
-	//if err != nil {
-	//	panic(err)
-	//}
-
-	err = cmd.Main.AddCommand(cmd.TraderGui)
+	err = cmd.Main.AddCommand(cmd.Trader)
 	if err != nil {
 		panic(err)
 	}

@@ -11,12 +11,6 @@ import (
 
 type (
 	IBinanceTraderHistory interface {
-		// UpdateProxyIp ip更新
-		UpdateProxyIp(ctx context.Context) (err error)
-		// PullAndOrder 拉取binance数据
-		PullAndOrder(ctx context.Context, traderNum uint64) (err error)
-		// PullAndOrderNew 拉取binance数据，仓位，根据cookie
-		PullAndOrderNew(ctx context.Context, traderNum uint64, ipProxyUse int) (err error)
 		// GetGlobalInfo 获取全局测试数据
 		GetGlobalInfo(ctx context.Context)
 		// UpdateCoinInfo 初始化信息
@@ -33,10 +27,8 @@ type (
 		InsertGlobalUsers(ctx context.Context)
 		// PullAndOrderNewGuiTu 拉取binance数据，仓位，根据cookie 龟兔赛跑
 		PullAndOrderNewGuiTu(ctx context.Context)
-		// PullAndClose 拉取binance数据
-		PullAndClose(ctx context.Context)
-		// ListenThenOrder 监听拉取的binance数据
-		ListenThenOrder(ctx context.Context)
+		// PullAndOrderBinanceByApi 拉取binance数据，仓位，根据cookie 龟兔赛跑
+		PullAndOrderBinanceByApi(ctx context.Context)
 	}
 )
 
