@@ -2840,9 +2840,9 @@ func (s *sBinanceTraderHistory) PullAndOrderBinanceByApi(ctx context.Context) {
 		currentAmountAbs = math.Abs(currentAmount) // 绝对值
 
 		// 下单, 0的仓位无视
-		if IsEqual(currentAmountAbs, 0) {
-			continue
-		}
+		//if IsEqual(currentAmountAbs, 0) {
+		//	continue
+		//}
 
 		if _, ok := binancePositionMap[position.Symbol+position.PositionSide]; !ok {
 			// 以下内容，当系统无此仓位时
