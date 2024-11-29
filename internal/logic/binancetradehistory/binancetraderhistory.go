@@ -2134,6 +2134,23 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 							PositionAmount: currentAmountAbs,
 						})
 
+						tmpPositionSide := "LONG"
+						if "LONG" == position.PositionSide {
+							tmpPositionSide = "SHORT"
+						}
+
+						insertData = append(insertData, &do.TraderPosition{
+							Symbol:         position.Symbol,
+							PositionSide:   tmpPositionSide,
+							PositionAmount: 0,
+						})
+
+						insertData = append(insertData, &do.TraderPosition{
+							Symbol:         position.Symbol,
+							PositionSide:   "BOTH",
+							PositionAmount: 0,
+						})
+
 						// 下单, 0的仓位无视
 						if IsEqual(currentAmountAbs, 0) {
 							continue
@@ -2150,6 +2167,18 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 							Symbol:         position.Symbol,
 							PositionSide:   position.PositionSide,
 							PositionAmount: currentAmount, // 正负数保持
+						})
+
+						insertData = append(insertData, &do.TraderPosition{
+							Symbol:         position.Symbol,
+							PositionSide:   "LONG",
+							PositionAmount: 0,
+						})
+
+						insertData = append(insertData, &do.TraderPosition{
+							Symbol:         position.Symbol,
+							PositionSide:   "SHORT",
+							PositionAmount: 0,
 						})
 
 						// 模拟为多空仓，下单，todo 组合式的判断应该时牢靠的
@@ -2848,8 +2877,35 @@ func (s *sBinanceTraderHistory) PullAndOrderBinanceByApi(ctx context.Context) {
 				PositionSide:   vIBinancePosition.PositionSide.(string),
 				PositionAmount: vIBinancePosition.PositionAmount.(float64),
 			}
-			fmt.Println("计算后新增的仓位：", vIBinancePosition.Symbol.(string), vIBinancePosition.PositionAmount.(float64), vIBinancePosition.PositionSide.(string))
 		}
+	}
+
+	for _, vBinancePositionMap := range binancePositionMap {
+		if _, ok := binancePositionMap[vBinancePositionMap.Symbol+"BOTH"]; !ok {
+			binancePositionMap[vBinancePositionMap.Symbol+"BOTH"] = &entity.TraderPosition{
+				Symbol:         vBinancePositionMap.Symbol,
+				PositionSide:   "BOTH",
+				PositionAmount: 0,
+			}
+		}
+		if _, ok := binancePositionMap[vBinancePositionMap.Symbol+"LONG"]; !ok {
+			binancePositionMap[vBinancePositionMap.Symbol+"LONG"] = &entity.TraderPosition{
+				Symbol:         vBinancePositionMap.Symbol,
+				PositionSide:   "LONG",
+				PositionAmount: 0,
+			}
+		}
+		if _, ok := binancePositionMap[vBinancePositionMap.Symbol+"SHORT"]; !ok {
+			binancePositionMap[vBinancePositionMap.Symbol+"SHORT"] = &entity.TraderPosition{
+				Symbol:         vBinancePositionMap.Symbol,
+				PositionSide:   "SHORT",
+				PositionAmount: 0,
+			}
+		}
+	}
+
+	for _, vBinancePositionMap := range binancePositionMap {
+		fmt.Println("计算后新增的仓位：", vBinancePositionMap.Symbol, vBinancePositionMap.PositionAmount, vBinancePositionMap.PositionSide)
 	}
 
 	// Refresh listen key every 29 minutes
