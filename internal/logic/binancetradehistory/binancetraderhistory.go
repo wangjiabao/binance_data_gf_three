@@ -566,7 +566,7 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 				fmt.Println("初始化成功保证金", vGlobalUsers, tmp, tmpUserMap[vGlobalUsers.Id].Num)
 				baseMoneyUserAllMap.Set(int(vGlobalUsers.Id), tmp)
 			} else {
-				if !IsEqual(tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64)) {
+				if !lessThanOrEqualZero(tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), 1) {
 					fmt.Println("变更成功", int(vGlobalUsers.Id), tmp, tmpUserMap[vGlobalUsers.Id].Num)
 					baseMoneyUserAllMap.Set(int(vGlobalUsers.Id), tmp)
 				}
@@ -706,7 +706,7 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 					fmt.Println("新增用户，初始化成功保证金", vTmpUserMap, tmp, vTmpUserMap.Num)
 					baseMoneyUserAllMap.Set(int(vTmpUserMap.Id), tmp)
 				} else {
-					if !IsEqual(tmp, baseMoneyUserAllMap.Get(int(vTmpUserMap.Id)).(float64)) {
+					if !lessThanOrEqualZero(tmp, baseMoneyUserAllMap.Get(int(vTmpUserMap.Id)).(float64), 1) {
 						fmt.Println("新增用户，变更成功", int(vTmpUserMap.Id), tmp, vTmpUserMap.Num)
 						baseMoneyUserAllMap.Set(int(vTmpUserMap.Id), tmp)
 					}
@@ -2826,7 +2826,7 @@ func (s *sBinanceTraderHistory) PullAndOrderBinanceByApi(ctx context.Context) {
 	insertData := make([]*do.TraderPosition, 0)
 
 	for _, position := range binancePosition {
-		fmt.Println("初始化：", position.Symbol, position.PositionAmt, position.PositionSide)
+		//fmt.Println("初始化：", position.Symbol, position.PositionAmt, position.PositionSide)
 
 		// 新增
 		var (
@@ -2904,9 +2904,9 @@ func (s *sBinanceTraderHistory) PullAndOrderBinanceByApi(ctx context.Context) {
 		}
 	}
 
-	for _, vBinancePositionMap := range binancePositionMap {
-		fmt.Println("计算后新增的仓位：", vBinancePositionMap.Symbol, vBinancePositionMap.PositionAmount, vBinancePositionMap.PositionSide)
-	}
+	//for _, vBinancePositionMap := range binancePositionMap {
+	//	fmt.Println("计算后新增的仓位：", vBinancePositionMap.Symbol, vBinancePositionMap.PositionAmount, vBinancePositionMap.PositionSide)
+	//}
 
 	// Refresh listen key every 29 minutes
 	handleRenewListenKey := func(ctx context.Context) {
