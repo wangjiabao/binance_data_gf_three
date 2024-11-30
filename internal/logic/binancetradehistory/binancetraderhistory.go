@@ -4113,13 +4113,28 @@ func requestBitGetTraderDetail(portfolioId string) (string, error) {
 		apiUrl = "https://www.bitget.com/v1/trigger/trace/public/traderDetailPageV2"
 	)
 
-	// 构造请求
-	contentType := "application/json"
-	data := `{"languageType":1,"traderUid":"` + portfolioId + `"}`
-	resp, err = http.Post(apiUrl, contentType, strings.NewReader(data))
-	if err != nil {
-		return res, err
+	// 构造请求数据
+	data := map[string]interface{}{
+		"languageType": 1,
+		"traderUid":    portfolioId,
 	}
+	requestBody, err := json.Marshal(data)
+	if err != nil {
+		return res, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	// 构造 HTTP 请求
+	req, err := http.NewRequest("POST", apiUrl, bytes.NewReader(requestBody))
+	if err != nil {
+		return res, fmt.Errorf("failed to create new request: %w", err)
+	}
+
+	// 添加 headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0") // 可根据需要自定义 User-Agent
+
+	client := &http.Client{}
+	resp, err = client.Do(req)
 
 	// 结果
 	defer func(Body io.ReadCloser) {
@@ -4135,6 +4150,7 @@ func requestBitGetTraderDetail(portfolioId string) (string, error) {
 		return res, err
 	}
 
+	//fmt.Println(string(b))
 	var l *bitGetTraderResponse
 	err = json.Unmarshal(b, &l)
 	if err != nil {
