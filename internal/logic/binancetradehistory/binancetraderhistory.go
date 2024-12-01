@@ -3838,7 +3838,7 @@ func bitGetPlaceOrder(apiKey, apiSecret, passphrase string, order *bitGetOrderRe
 		return nil, fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	fmt.Println(string(respBody))
+	//fmt.Println(string(respBody))
 	// 解析响应
 	var orderResponse *bitGetOrderResponse
 	err = json.Unmarshal(respBody, &orderResponse)
@@ -3968,6 +3968,7 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 		return nil, err
 	}
 
+	fmt.Println(string(bodyResp))
 	var response *OrderResponseGate
 	if err := json.Unmarshal(bodyResp, &response); err != nil {
 		fmt.Println("Error unmarshaling response:", err)
