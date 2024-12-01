@@ -3885,33 +3885,16 @@ type OrderResponseGate struct {
 	AmendText    string `json:"amend_text"`
 }
 
-// genSign generates the HMAC SHA512 signature for authentication
-func genSign(method, url, queryParam, apiSecretGate, body string) string {
-	// Prepare the payload
-	bodyStr := body
-	if body == "" {
-		bodyStr = "{}"
-	}
-
-	// Generate the string to sign
-	nonce := fmt.Sprintf("%d", time.Now().Unix())
-	signStr := fmt.Sprintf("%s\n%s\n%s\n%s\n%s", method, url, queryParam, bodyStr, nonce)
-
-	// Create the HMAC SHA512 signature
-	hash := hmac.New(sha512.New, []byte(apiSecretGate))
-	hash.Write([]byte(signStr))
-	signature := hex.EncodeToString(hash.Sum(nil))
-
-	return signature
+// generateSignatureGate 生成 API 签名
+func generateSignatureGate(method, path, body, timestamp, apiS string) string {
+	payload := fmt.Sprintf("%s\n%s\n%s\n%s", method, path, timestamp, body)
+	h := hmac.New(sha512.New, []byte(apiSecret))
+	h.Write([]byte(payload))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // placeOrderGate places an order on the Gate.io API with dynamic parameters
 func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, autoSize string) (*OrderResponseGate, error) {
-	// API Base URL
-	host := "https://api.gateio.ws"
-	prefix := "/api/v4"
-	urlGate := "/futures/usdt/orders"
-
 	// Populate the order request struct
 	orderRequest := OrderRequestGate{
 		Contract:   contract,
@@ -3921,46 +3904,26 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 		AutoSize:   autoSize,
 	}
 
-	// Convert the order request to JSON
+	// 将请求体序列化为 JSON
 	body, err := json.Marshal(orderRequest)
 	if err != nil {
-		fmt.Println("Error marshaling body:", err)
 		return nil, err
 	}
-	t := time.Now().Unix()
-	// Generate the string to sign
-	nonce := fmt.Sprintf("%d", t)
 
-	signStr := fmt.Sprintf("%s\n%s\n%s\n%s\n%s", "POST", prefix+urlGate, "", body, nonce)
-
-	// Create the HMAC SHA512 signature
-	hash := hmac.New(sha512.New, []byte(apiS))
-	hash.Write([]byte(signStr))
-	signature := hex.EncodeToString(hash.Sum(nil))
-	//signature := genSign("POST", prefix, urlGate, apiS, string(body))
-
-	// Create headers
-	headers := map[string]string{
-		"Accept":       "application/json",
-		"Content-Type": "application/json",
-		"KEY":          apiK,
-		"SIGN":         signature,
-		"TIMESTAMP":    fmt.Sprintf("%d", t),
-	}
-
-	// Create HTTP request
-	req, err := http.NewRequest("POST", host+prefix+urlGate, bytes.NewBuffer(body))
+	// 创建 HTTP 请求
+	req, err := http.NewRequest("POST", "https://api.gateio.ws/api/v4/futures/usdt/orders", bytes.NewBuffer(body))
 	if err != nil {
-		fmt.Println("Error creating request:", err)
 		return nil, err
 	}
 
-	// Set the headers
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
+	// 设置请求头
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	signature := generateSignatureGate("POST", "/api/v4/futures/usdt/orders", string(body), apiS, timestamp)
+	req.Header.Set("KEY", apiK)
+	req.Header.Set("SIGN", signature)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Timestamp", timestamp)
 
-	// Send the request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
