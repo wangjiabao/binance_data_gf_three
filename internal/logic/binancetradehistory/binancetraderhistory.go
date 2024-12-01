@@ -3886,10 +3886,9 @@ type OrderResponseGate struct {
 }
 
 // generateSignatureGate 生成 API 签名
-func generateSignatureGate(method, path, body, timestamp, apiS string) string {
-	payload := fmt.Sprintf("%s\n%s\n%s\n%s", method, path, timestamp, body)
-	h := hmac.New(sha512.New, []byte(apiS))
-	h.Write([]byte(payload))
+func generateSignatureGate(signatureString string) string {
+	h := hmac.New(sha512.New, []byte(apiSecret))
+	h.Write([]byte(signatureString))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -3904,6 +3903,9 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 		AutoSize:   autoSize,
 	}
 
+	baseURL := "https://api.gateio.ws/api/v4"
+	urlTmp := fmt.Sprintf("%s/futures/usdt/orders", baseURL)
+
 	// 将请求体序列化为 JSON
 	body, err := json.Marshal(orderRequest)
 	if err != nil {
@@ -3911,18 +3913,40 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 	}
 
 	// 创建 HTTP 请求
-	req, err := http.NewRequest("POST", "https://api.gateio.ws/api/v4/futures/usdt/orders", bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", urlTmp, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
 
-	// 设置请求头
+	// 获取当前时间戳（秒级）
 	timestamp := fmt.Sprintf("%d", time.Now().Unix())
-	signature := generateSignatureGate("POST", "/api/v4/futures/usdt/orders", string(body), timestamp, apiS)
-	req.Header.Set("KEY", apiK)
+
+	// 获取请求路径，不包含域名和参数
+	parsedURL, err := url.Parse(urlTmp)
+	if err != nil {
+		return nil, err
+	}
+	path := parsedURL.Path
+
+	// 如果有查询参数，拼接查询字符串
+	queryString := ""
+
+	// 请求体的 SHA512 哈希（如果请求体为空，使用空字符串的 SHA512 哈希结果）
+	hash := sha512.New()
+	hash.Write(body)
+	hexHash := hex.EncodeToString(hash.Sum(nil))
+
+	// 构建签名字符串
+	signatureString := fmt.Sprintf("%s\n%s\n%s\n%s\n%s", "POST", path, queryString, hexHash, timestamp)
+
+	// 使用 API Secret 生成签名
+	signature := generateSignatureGate(signatureString)
+
+	// 设置请求头
+	req.Header.Set("KEY", apiKey)
 	req.Header.Set("SIGN", signature)
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Timestamp", timestamp)
+	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
