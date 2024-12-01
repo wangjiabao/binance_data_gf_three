@@ -3841,7 +3841,7 @@ func bitGetPlaceOrder(apiKey, apiSecret, passphrase string, order *bitGetOrderRe
 	fmt.Println(string(respBody))
 	// 解析响应
 	var orderResponse *bitGetOrderResponse
-	err = json.Unmarshal(respBody, orderResponse)
+	err = json.Unmarshal(respBody, &orderResponse)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse response JSON: %v", err)
 	}
