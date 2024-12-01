@@ -3894,15 +3894,30 @@ func generateSignatureGate(signatureString, apiS string) string {
 
 // placeOrderGate places an order on the Gate.io API with dynamic parameters
 func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, autoSize string) (*OrderResponseGate, error) {
-	// Populate the order request struct
-	orderRequest := OrderRequestGate{
-		Contract:   contract,
-		Size:       size,
-		ReduceOnly: reduceOnly,
-		Tif:        "ioc",
+	//// Populate the order request struct
+	//orderRequest := OrderRequestGate{
+	//	Contract:   contract,
+	//	Size:       size,
+	//	ReduceOnly: reduceOnly,
+	//	Tif:        "ioc",
+	//}
+	//if "" == autoSize {
+	//	orderRequest.AutoSize = autoSize
+	//}
+
+	orderRequest := map[string]interface{}{
+		"contract": contract,
+		"size":     size,
+		"tif":      "ioc",
 	}
-	if "" == autoSize {
-		orderRequest.AutoSize = autoSize
+
+	// 如果 autoSize 不为空，则添加到请求数据中
+	if "" != autoSize {
+		orderRequest["auto_size"] = autoSize
+	}
+
+	if reduceOnly {
+		orderRequest["reduce_only"] = reduceOnly
 	}
 
 	baseURL := "https://api.gateio.ws/api/v4"
