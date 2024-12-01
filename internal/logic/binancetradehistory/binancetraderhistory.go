@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/gateio/gateapi-go/v6"
 	"github.com/gogf/gf/v2/container/gmap"
 	"github.com/gogf/gf/v2/container/gqueue"
 	"github.com/gogf/gf/v2/container/gset"
@@ -1022,7 +1023,7 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 
 					var (
 						tmpQty        float64
-						gateRes       *OrderResponseGate
+						gateRes       gateapi.FuturesOrder
 						side          string
 						symbol        = symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).Symbol + "_USDT"
 						positionSide  string
@@ -1081,7 +1082,7 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 						continue
 					}
 
-					if 0 >= gateRes.ID {
+					if 0 >= gateRes.Id {
 						fmt.Println("初始化，gate， 下单错误1", err, symbol, side, positionSide, quantity, gateRes)
 						continue
 					}
@@ -3893,99 +3894,142 @@ func generateSignatureGate(signatureString, apiS string) string {
 }
 
 // placeOrderGate places an order on the Gate.io API with dynamic parameters
-func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, autoSize string) (*OrderResponseGate, error) {
-	// 构造请求的 JSON 数据
-	orderRequest := map[string]interface{}{
-		"contract": contract, // 合约名，如 BTC_USDT
-		"size":     size,     // 合约数量
-		"tif":      "ioc",    // 有效时间：IOC（立即成交或取消）
+func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, autoSize string) (gateapi.FuturesOrder, error) {
+	client := gateapi.NewAPIClient(gateapi.NewConfiguration())
+	// uncomment the next line if your are testing against testnet
+	// client.ChangeBasePath("https://fx-api-testnet.gateio.ws/api/v4")
+	ctx := context.WithValue(context.Background(),
+		gateapi.ContextGateAPIV4,
+		gateapi.GateAPIV4{
+			Key:    apiK,
+			Secret: apiS,
+		},
+	)
+
+	order := gateapi.FuturesOrder{
+		Contract: contract,
+		Size:     size,
+		Tif:      "ioc",
 	}
 
-	// 如果 autoSize 不为空，则添加到请求数据中
 	if autoSize != "" {
-		orderRequest["auto_size"] = autoSize
+		order.AutoSize = autoSize
 	}
 
 	// 如果 reduceOnly 为 true，添加到请求数据中
 	if reduceOnly {
-		orderRequest["reduce_only"] = reduceOnly
+		order.ReduceOnly = reduceOnly
 	}
 
-	baseURL := "https://api.gateio.ws/api/v4"
-	urlTmp := fmt.Sprintf("%s/futures/usdt/orders", baseURL) // 正确路径
+	result, _, err := client.FuturesApi.CreateFuturesOrder(ctx, "usdt", order)
 
-	// 将请求体序列化为 JSON
-	body, err := json.Marshal(orderRequest)
 	if err != nil {
-		return nil, err
-	}
-
-	// 创建 HTTP 请求
-	req, err := http.NewRequest("POST", urlTmp, bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	// 获取当前时间戳（秒级）
-	timestamp := fmt.Sprintf("%d", time.Now().Unix())
-
-	// 获取请求路径，不包含域名和参数
-	parsedURL, err := url.Parse(urlTmp)
-	if err != nil {
-		return nil, err
-	}
-	path := parsedURL.Path // 确保路径正确
-
-	// 如果有查询参数，拼接查询字符串
-	queryString := "" // API 请求没有查询参数
-
-	// 请求体的 SHA512 哈希（如果请求体为空，使用空字符串的 SHA512 哈希结果）
-	hash := sha512.New()
-	if len(body) > 0 {
-		hash.Write(body) // 如果有请求体，计算其 SHA512 哈希
+		if e, ok := err.(gateapi.GateAPIError); ok {
+			fmt.Println("gate api error: ", e.Error())
+		} else {
+			fmt.Println("generic error: ", err.Error())
+		}
 	} else {
-		hash.Write([]byte("")) // 如果请求体为空，使用空字符串的哈希
-	}
-	hexHash := hex.EncodeToString(hash.Sum(nil))
-
-	// 构建签名字符串
-	signatureString := fmt.Sprintf("%s\n%s\n%s\n%s\n%s", "POST", path, queryString, hexHash, timestamp)
-
-	// 使用 API Secret 生成签名
-	signature := generateSignatureGate(signatureString, apiS)
-
-	// 设置请求头
-	req.Header.Set("KEY", apiK)
-	req.Header.Set("SIGN", signature)
-	req.Header.Set("Timestamp", timestamp)
-	req.Header.Set("Content-Type", "application/json")
-
-	// 发送请求
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error sending request:", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	// 读取并打印响应
-	bodyResp, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading response:", err)
-		return nil, err
+		fmt.Println(result)
 	}
 
-	fmt.Println(string(bodyResp))
-	var response *OrderResponseGate
-	if err := json.Unmarshal(bodyResp, &response); err != nil {
-		fmt.Println("Error unmarshaling response:", err)
-		return nil, err
-	}
-
-	// 返回响应
-	return response, nil
+	return result, nil
 }
+
+//// placeOrderGate places an order on the Gate.io API with dynamic parameters
+//func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, autoSize string) (*OrderResponseGate, error) {
+//	// 构造请求的 JSON 数据
+//	orderRequest := map[string]interface{}{
+//		"contract": contract, // 合约名，如 BTC_USDT
+//		"size":     size,     // 合约数量
+//		"tif":      "ioc",    // 有效时间：IOC（立即成交或取消）
+//	}
+//
+//	// 如果 autoSize 不为空，则添加到请求数据中
+//	if autoSize != "" {
+//		orderRequest["auto_size"] = autoSize
+//	}
+//
+//	// 如果 reduceOnly 为 true，添加到请求数据中
+//	if reduceOnly {
+//		orderRequest["reduce_only"] = reduceOnly
+//	}
+//
+//	baseURL := "https://api.gateio.ws/api/v4"
+//	urlTmp := fmt.Sprintf("%s/futures/usdt/orders", baseURL) // 正确路径
+//
+//	// 将请求体序列化为 JSON
+//	body, err := json.Marshal(orderRequest)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	// 创建 HTTP 请求
+//	req, err := http.NewRequest("POST", urlTmp, bytes.NewBuffer(body))
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	// 获取当前时间戳（秒级）
+//	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+//
+//	// 获取请求路径，不包含域名和参数
+//	parsedURL, err := url.Parse(urlTmp)
+//	if err != nil {
+//		return nil, err
+//	}
+//	path := parsedURL.Path // 确保路径正确
+//
+//	// 如果有查询参数，拼接查询字符串
+//	queryString := "" // API 请求没有查询参数
+//
+//	// 请求体的 SHA512 哈希（如果请求体为空，使用空字符串的 SHA512 哈希结果）
+//	hash := sha512.New()
+//	if len(body) > 0 {
+//		hash.Write(body) // 如果有请求体，计算其 SHA512 哈希
+//	} else {
+//		hash.Write([]byte("")) // 如果请求体为空，使用空字符串的哈希
+//	}
+//	hexHash := hex.EncodeToString(hash.Sum(nil))
+//
+//	// 构建签名字符串
+//	signatureString := fmt.Sprintf("%s\n%s\n%s\n%s\n%s", "POST", path, queryString, hexHash, timestamp)
+//
+//	// 使用 API Secret 生成签名
+//	signature := generateSignatureGate(signatureString, apiS)
+//
+//	// 设置请求头
+//	req.Header.Set("KEY", apiK)
+//	req.Header.Set("SIGN", signature)
+//	req.Header.Set("Timestamp", timestamp)
+//	req.Header.Set("Content-Type", "application/json")
+//
+//	// 发送请求
+//	client := &http.Client{}
+//	resp, err := client.Do(req)
+//	if err != nil {
+//		fmt.Println("Error sending request:", err)
+//		return nil, err
+//	}
+//	defer resp.Body.Close()
+//
+//	// 读取并打印响应
+//	bodyResp, err := ioutil.ReadAll(resp.Body)
+//	if err != nil {
+//		fmt.Println("Error reading response:", err)
+//		return nil, err
+//	}
+//
+//	fmt.Println(string(bodyResp))
+//	var response *OrderResponseGate
+//	if err := json.Unmarshal(bodyResp, &response); err != nil {
+//		fmt.Println("Error unmarshaling response:", err)
+//		return nil, err
+//	}
+//
+//	// 返回响应
+//	return response, nil
+//}
 
 type BinanceTraderDetailResp struct {
 	Data *BinanceTraderDetailData
