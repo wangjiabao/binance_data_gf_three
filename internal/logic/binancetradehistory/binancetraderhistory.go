@@ -3888,7 +3888,7 @@ type OrderResponseGate struct {
 // generateSignatureGate 生成 API 签名
 func generateSignatureGate(method, path, body, timestamp, apiS string) string {
 	payload := fmt.Sprintf("%s\n%s\n%s\n%s", method, path, timestamp, body)
-	h := hmac.New(sha512.New, []byte(apiSecret))
+	h := hmac.New(sha512.New, []byte(apiS))
 	h.Write([]byte(payload))
 	return hex.EncodeToString(h.Sum(nil))
 }
