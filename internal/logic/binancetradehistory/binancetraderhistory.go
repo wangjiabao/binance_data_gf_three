@@ -3895,7 +3895,7 @@ func genSign(method, url, queryParam, apiSecretGate, body string) string {
 
 	// Generate the string to sign
 	nonce := fmt.Sprintf("%d", time.Now().Unix())
-	signStr := fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s", method, url, queryParam, bodyStr, nonce, apiKey)
+	signStr := fmt.Sprintf("%s\n%s\n%s\n%s\n%s", method, url, queryParam, bodyStr, nonce)
 
 	// Create the HMAC SHA512 signature
 	hash := hmac.New(sha512.New, []byte(apiSecretGate))
@@ -3927,9 +3927,17 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 		fmt.Println("Error marshaling body:", err)
 		return nil, err
 	}
+	t := time.Now().Unix()
+	// Generate the string to sign
+	nonce := fmt.Sprintf("%d", t)
 
-	// Sign headers
-	signature := genSign("POST", prefix, urlGate, apiS, string(body))
+	signStr := fmt.Sprintf("%s\n%s\n%s\n%s\n%s", "POST", prefix+urlGate, "", body, nonce)
+
+	// Create the HMAC SHA512 signature
+	hash := hmac.New(sha512.New, []byte(apiS))
+	hash.Write([]byte(signStr))
+	signature := hex.EncodeToString(hash.Sum(nil))
+	//signature := genSign("POST", prefix, urlGate, apiS, string(body))
 
 	// Create headers
 	headers := map[string]string{
@@ -3937,7 +3945,7 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 		"Content-Type": "application/json",
 		"KEY":          apiK,
 		"SIGN":         signature,
-		"TIMESTAMP":    fmt.Sprintf("%d", time.Now().Unix()),
+		"TIMESTAMP":    fmt.Sprintf("%d", t),
 	}
 
 	// Create HTTP request
