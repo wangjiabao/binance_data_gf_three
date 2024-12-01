@@ -3918,7 +3918,7 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 
 	// 设置请求头
 	timestamp := fmt.Sprintf("%d", time.Now().Unix())
-	signature := generateSignatureGate("POST", "/api/v4/futures/usdt/orders", string(body), apiS, timestamp)
+	signature := generateSignatureGate("POST", "/api/v4/futures/usdt/orders", string(body), timestamp, apiS)
 	req.Header.Set("KEY", apiK)
 	req.Header.Set("SIGN", signature)
 	req.Header.Set("Content-Type", "application/json")
