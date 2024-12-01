@@ -3886,8 +3886,8 @@ type OrderResponseGate struct {
 }
 
 // generateSignatureGate 生成 API 签名
-func generateSignatureGate(signatureString string) string {
-	h := hmac.New(sha512.New, []byte(apiSecret))
+func generateSignatureGate(signatureString, apiS string) string {
+	h := hmac.New(sha512.New, []byte(apiS))
 	h.Write([]byte(signatureString))
 	return hex.EncodeToString(h.Sum(nil))
 }
@@ -3940,10 +3940,10 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 	signatureString := fmt.Sprintf("%s\n%s\n%s\n%s\n%s", "POST", path, queryString, hexHash, timestamp)
 
 	// 使用 API Secret 生成签名
-	signature := generateSignatureGate(signatureString)
+	signature := generateSignatureGate(signatureString, apiS)
 
 	// 设置请求头
-	req.Header.Set("KEY", apiKey)
+	req.Header.Set("KEY", apiK)
 	req.Header.Set("SIGN", signature)
 	req.Header.Set("Timestamp", timestamp)
 	req.Header.Set("Content-Type", "application/json")
