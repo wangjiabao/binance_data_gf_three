@@ -3894,34 +3894,25 @@ func generateSignatureGate(signatureString, apiS string) string {
 
 // placeOrderGate places an order on the Gate.io API with dynamic parameters
 func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, autoSize string) (*OrderResponseGate, error) {
-	//// Populate the order request struct
-	//orderRequest := OrderRequestGate{
-	//	Contract:   contract,
-	//	Size:       size,
-	//	ReduceOnly: reduceOnly,
-	//	Tif:        "ioc",
-	//}
-	//if "" == autoSize {
-	//	orderRequest.AutoSize = autoSize
-	//}
-
+	// 构造请求的 JSON 数据
 	orderRequest := map[string]interface{}{
-		"contract": contract,
-		"size":     size,
-		"tif":      "ioc",
+		"contract": contract, // 合约名，如 BTC_USDT
+		"size":     size,     // 合约数量
+		"tif":      "ioc",    // 有效时间：IOC（立即成交或取消）
 	}
 
 	// 如果 autoSize 不为空，则添加到请求数据中
-	if "" != autoSize {
+	if autoSize != "" {
 		orderRequest["auto_size"] = autoSize
 	}
 
+	// 如果 reduceOnly 为 true，添加到请求数据中
 	if reduceOnly {
 		orderRequest["reduce_only"] = reduceOnly
 	}
 
 	baseURL := "https://api.gateio.ws/api/v4"
-	urlTmp := fmt.Sprintf("%s/futures/usdt/orders", baseURL)
+	urlTmp := fmt.Sprintf("%s/futures/usdt/orders", baseURL) // 正确路径
 
 	// 将请求体序列化为 JSON
 	body, err := json.Marshal(orderRequest)
@@ -3943,14 +3934,18 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 	if err != nil {
 		return nil, err
 	}
-	path := parsedURL.Path
+	path := parsedURL.Path // 确保路径正确
 
 	// 如果有查询参数，拼接查询字符串
-	queryString := ""
+	queryString := "" // API 请求没有查询参数
 
 	// 请求体的 SHA512 哈希（如果请求体为空，使用空字符串的 SHA512 哈希结果）
 	hash := sha512.New()
-	hash.Write(body)
+	if len(body) > 0 {
+		hash.Write(body) // 如果有请求体，计算其 SHA512 哈希
+	} else {
+		hash.Write([]byte("")) // 如果请求体为空，使用空字符串的哈希
+	}
 	hexHash := hex.EncodeToString(hash.Sum(nil))
 
 	// 构建签名字符串
@@ -3965,6 +3960,7 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 	req.Header.Set("Timestamp", timestamp)
 	req.Header.Set("Content-Type", "application/json")
 
+	// 发送请求
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -3973,7 +3969,7 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 	}
 	defer resp.Body.Close()
 
-	// Read and print response
+	// 读取并打印响应
 	bodyResp, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response:", err)
@@ -3987,7 +3983,7 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 		return nil, err
 	}
 
-	// Print full response
+	// 返回响应
 	return response, nil
 }
 
