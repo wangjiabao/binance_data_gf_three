@@ -3757,12 +3757,9 @@ type bitGetOrderRequest struct {
 	MarginMode  string `json:"marginMode"`
 	MarginCoin  string `json:"marginCoin"`
 	Size        string `json:"size"`
-	Price       string `json:"price"`
 	Side        string `json:"side"`
 	TradeSide   string `json:"tradeSide"`
 	OrderType   string `json:"orderType"`
-	Force       string `json:"force"`
-	ClientOid   string `json:"clientOid"`
 }
 
 // OrderResponse 定义响应结构体
