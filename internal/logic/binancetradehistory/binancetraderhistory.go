@@ -3898,9 +3898,11 @@ func placeOrderGate(apiK, apiS, contract string, size int64, reduceOnly bool, au
 	orderRequest := OrderRequestGate{
 		Contract:   contract,
 		Size:       size,
-		Tif:        "ioc",
 		ReduceOnly: reduceOnly,
-		AutoSize:   autoSize,
+		Tif:        "ioc",
+	}
+	if "" == autoSize {
+		orderRequest.AutoSize = autoSize
 	}
 
 	baseURL := "https://api.gateio.ws/api/v4"
