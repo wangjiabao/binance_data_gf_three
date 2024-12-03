@@ -491,12 +491,12 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 			detail string
 		)
 		if "binance" == vGlobalUsers.Plat {
-			if 0 >= vGlobalUsers.BinanceId {
-				fmt.Println("龟兔，变更保证金，用户数据错误：", vGlobalUsers)
-				return true
-			}
-
 			if 1 == vGlobalUsers.Dai {
+				if 0 >= vGlobalUsers.BinanceId {
+					fmt.Println("龟兔，变更保证金，用户数据错误：", vGlobalUsers)
+					return true
+				}
+
 				detail, err = requestBinanceTraderDetail(uint64(vGlobalUsers.BinanceId))
 				if nil != err {
 					fmt.Println("龟兔，拉取保证金失败：", err, vGlobalUsers)
@@ -652,12 +652,12 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 				detail string
 			)
 			if "binance" == vTmpUserMap.Plat {
-				if 0 >= vTmpUserMap.BinanceId {
-					fmt.Println("龟兔，变更保证金，用户数据错误：", vTmpUserMap)
-					continue
-				}
-
 				if 1 == vTmpUserMap.Dai {
+					if 0 >= vTmpUserMap.BinanceId {
+						fmt.Println("龟兔，变更保证金，用户数据错误：", vTmpUserMap)
+						continue
+					}
+
 					detail, err = requestBinanceTraderDetail(uint64(vTmpUserMap.BinanceId))
 					if nil != err {
 						fmt.Println("龟兔，拉取保证金失败：", err, vTmpUserMap)
