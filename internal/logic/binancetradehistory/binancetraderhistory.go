@@ -2933,12 +2933,12 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 								positionSide = "LONG"
 								side = "SELL"
 
+								quantityFloat = -quantityFloat
+								quantityInt64 = -quantityInt64
 							} else if "SHORT" == tmpUpdateData.PositionSide {
 								positionSide = "SHORT"
 								side = "BUY"
 
-								quantityFloat = -quantityFloat
-								quantityInt64 = -quantityInt64
 							} else {
 								fmt.Println("龟兔，无效信息，信息", tmpUpdateData)
 								continue
@@ -2954,11 +2954,11 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 							defer wg.Done()
 							gateRes, err = placeOrderGate(tmpUser.ApiKey, tmpUser.ApiSecret, symbol, quantityInt64, reduceOnly, closePosition)
 							if nil != err {
-								fmt.Println("初始化，gate， 下单错误", err, symbol, side, positionSide, quantity, gateRes)
+								fmt.Println("初始化，gate， 下单错误", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
 							}
 
 							if 0 >= gateRes.Id {
-								fmt.Println("初始化，gate， 下单错误1", err, symbol, side, positionSide, quantity, gateRes)
+								fmt.Println("初始化，gate， 下单错误1", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
 								return
 							}
 
