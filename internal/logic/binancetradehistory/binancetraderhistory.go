@@ -2827,6 +2827,7 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 						if lessThanOrEqualZero(tmpUpdateData.PositionAmount.(float64), 0, 1e-7) {
 							fmt.Println("龟兔，完全平仓：", tmpUpdateData)
 							// 全平仓
+							reduceOnly = true
 							if "LONG" == tmpUpdateData.PositionSide {
 								positionSide = "LONG"
 								side = "SELL"
@@ -2894,6 +2895,8 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 
 						} else if lessThanOrEqualZero(tmpUpdateData.PositionAmount.(float64), lastPositionData.PositionAmount, 1e-7) {
 							fmt.Println("龟兔，部分平仓：", tmpUpdateData, lastPositionData)
+							reduceOnly = true
+
 							// 未开启过仓位
 							if !orderMap.Contains(tmpUpdateData.Symbol.(string) + "&" + tmpUpdateData.PositionSide.(string) + "&" + strUserId) {
 								continue
@@ -2930,12 +2933,10 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 								positionSide = "LONG"
 								side = "SELL"
 
-								closePosition = "close_long"
 							} else if "SHORT" == tmpUpdateData.PositionSide {
 								positionSide = "SHORT"
 								side = "BUY"
 
-								closePosition = "close_short"
 								quantityFloat = -quantityFloat
 								quantityInt64 = -quantityInt64
 							} else {
