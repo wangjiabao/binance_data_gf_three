@@ -2916,10 +2916,8 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 							// 按百分比
 							tmpQty = orderMap.Get(tmpUpdateData.Symbol.(string)+"&"+tmpUpdateData.PositionSide.(string)+"&"+strUserId).(float64) * (lastPositionData.PositionAmount - tmpUpdateData.PositionAmount.(float64)) / lastPositionData.PositionAmount
 
-							// 转化为张数=币的数量/每张币的数量
-							tmpQtyOkx := tmpQty / symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).QuantoMultiplier
 							// 按张的精度转化，
-							quantityInt64 = int64(math.Round(tmpQtyOkx))
+							quantityInt64 = int64(tmpQty)
 							quantityFloat = float64(quantityInt64)
 							tmpExecutedQty = quantityFloat // 正数
 
@@ -2952,7 +2950,6 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 						wg.Add(1)
 						err = s.pool.Add(ctx, func(ctx context.Context) {
 							defer wg.Done()
-							fmt.Println("看看:", symbol, quantityInt64, reduceOnly, closePosition)
 							gateRes, err = placeOrderGate(tmpUser.ApiKey, tmpUser.ApiSecret, symbol, quantityInt64, reduceOnly, closePosition)
 							if nil != err {
 								fmt.Println("初始化，gate， 下单错误", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
