@@ -2952,6 +2952,7 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 						wg.Add(1)
 						err = s.pool.Add(ctx, func(ctx context.Context) {
 							defer wg.Done()
+							fmt.Println("看看:", symbol, quantityInt64, reduceOnly, closePosition)
 							gateRes, err = placeOrderGate(tmpUser.ApiKey, tmpUser.ApiSecret, symbol, quantityInt64, reduceOnly, closePosition)
 							if nil != err {
 								fmt.Println("初始化，gate， 下单错误", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
