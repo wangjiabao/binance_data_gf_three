@@ -59,7 +59,7 @@ var (
 			handle5 := func(ctx context.Context) {
 				serviceBinanceTrader.GetGlobalInfo(ctx)
 			}
-			gtimer.AddSingleton(ctx, time.Second*30, handle5)
+			gtimer.AddSingleton(ctx, time.Second*60, handle5)
 
 			serviceBinanceTrader.PullAndOrderBinanceByApi(ctx)
 			return nil
