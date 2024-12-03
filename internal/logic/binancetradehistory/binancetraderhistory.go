@@ -496,10 +496,14 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 				return true
 			}
 
-			detail, err = requestBinanceTraderDetail(uint64(vGlobalUsers.BinanceId))
-			if nil != err {
-				fmt.Println("龟兔，拉取保证金失败：", err, vGlobalUsers)
-				return true
+			if 1 == vGlobalUsers.Dai {
+				detail, err = requestBinanceTraderDetail(uint64(vGlobalUsers.BinanceId))
+				if nil != err {
+					fmt.Println("龟兔，拉取保证金失败：", err, vGlobalUsers)
+					return true
+				}
+			} else {
+				detail = getBinanceInfo(vGlobalUsers.ApiKey, vGlobalUsers.ApiSecret)
 			}
 		} else if "okx" == vGlobalUsers.Plat {
 			//if 0 >= len(vGlobalUsers.OkxId) {
@@ -543,11 +547,25 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 				return true
 			}
 
-			detail, err = requestGateTraderDetail(vGlobalUsers.OkxId)
+			//if 1 == vGlobalUsers.Dai {
+			//	detail, err = requestGateTraderDetail(vGlobalUsers.OkxId)
+			//	if nil != err {
+			//		fmt.Println("龟兔，拉取保证金失败，gate：", err, vGlobalUsers)
+			//		return true
+			//	}
+			//} else {
+			var (
+				gateUser gateapi.FuturesAccount
+			)
+			gateUser, err = getGateContract(vGlobalUsers.ApiKey, vGlobalUsers.ApiSecret)
 			if nil != err {
 				fmt.Println("龟兔，拉取保证金失败，gate：", err, vGlobalUsers)
 				return true
 			}
+
+			fmt.Println(gateUser)
+			detail = gateUser.Total
+			//}
 
 		} else {
 			fmt.Println("获取平台保证金，错误用户信息", vGlobalUsers)
@@ -640,10 +658,15 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 					continue
 				}
 
-				detail, err = requestBinanceTraderDetail(uint64(vTmpUserMap.BinanceId))
-				if nil != err {
-					fmt.Println("龟兔，新增用户，拉取保证金失败：", err, vTmpUserMap)
+				if 1 == vTmpUserMap.Dai {
+					detail, err = requestBinanceTraderDetail(uint64(vTmpUserMap.BinanceId))
+					if nil != err {
+						fmt.Println("龟兔，拉取保证金失败：", err, vTmpUserMap)
+					}
+				} else {
+					detail = getBinanceInfo(vTmpUserMap.ApiKey, vTmpUserMap.ApiSecret)
 				}
+
 			} else if "okx" == vTmpUserMap.Plat {
 				//if 0 >= len(vTmpUserMap.OkxId) {
 				//	fmt.Println("龟兔，变更保证金，用户数据错误：", vTmpUserMap)
@@ -679,16 +702,27 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 				//	continue
 				//}
 			} else if "gate" == vTmpUserMap.Plat {
-				if 0 >= len(vTmpUserMap.OkxId) {
-					fmt.Println("龟兔，变更保证金，用户数据错误：", vTmpUserMap)
-					continue
+				//if 0 >= len(vTmpUserMap.OkxId) {
+				//	fmt.Println("龟兔，变更保证金，用户数据错误：", vTmpUserMap)
+				//	continue
+				//}
+				//
+				//detail, err = requestGateTraderDetail(vTmpUserMap.OkxId)
+				//if nil != err {
+				//	fmt.Println("龟兔，拉取保证金失败， gate：", err, vTmpUserMap)
+				//	continue
+				//}
+
+				var (
+					gateUser gateapi.FuturesAccount
+				)
+				gateUser, err = getGateContract(vTmpUserMap.ApiKey, vTmpUserMap.ApiSecret)
+				if nil != err {
+					fmt.Println("龟兔，拉取保证金失败，gate：", err, vTmpUserMap)
 				}
 
-				detail, err = requestGateTraderDetail(vTmpUserMap.OkxId)
-				if nil != err {
-					fmt.Println("龟兔，拉取保证金失败， gate：", err, vTmpUserMap)
-					continue
-				}
+				fmt.Println(gateUser)
+				detail = gateUser.Total
 			} else {
 				fmt.Println("初始化，错误用户信息", vTmpUserMap)
 				continue
@@ -4108,6 +4142,31 @@ func generateSignatureGate(signatureString, apiS string) string {
 	h := hmac.New(sha512.New, []byte(apiS))
 	h.Write([]byte(signatureString))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// getGateContract
+func getGateContract(apiK, apiS string) (gateapi.FuturesAccount, error) {
+	client := gateapi.NewAPIClient(gateapi.NewConfiguration())
+	// uncomment the next line if your are testing against testnet
+	// client.ChangeBasePath("https://fx-api-testnet.gateio.ws/api/v4")
+	ctx := context.WithValue(context.Background(),
+		gateapi.ContextGateAPIV4,
+		gateapi.GateAPIV4{
+			Key:    apiK,
+			Secret: apiS,
+		},
+	)
+
+	result, _, err := client.FuturesApi.ListFuturesAccounts(ctx, "usdt")
+	if err != nil {
+		if e, ok := err.(gateapi.GateAPIError); ok {
+			fmt.Println("gate api error: ", e.Error())
+		} else {
+			fmt.Println("generic error: ", err.Error())
+		}
+	}
+
+	return result, nil
 }
 
 // placeOrderGate places an order on the Gate.io API with dynamic parameters

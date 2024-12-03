@@ -29,4 +29,5 @@ type NewUser struct {
 	Num                 interface{} //
 	Plat                interface{} //
 	OkxPass             interface{} //
+	Dai                 interface{} //
 }

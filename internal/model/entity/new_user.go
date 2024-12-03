@@ -27,4 +27,5 @@ type NewUser struct {
 	Num                 float64     `json:"num"                 ` //
 	Plat                string      `json:"plat"                ` //
 	OkxPass             string      `json:"okxPass"             ` //
+	Dai                 int         `json:"dai"                 ` //
 }

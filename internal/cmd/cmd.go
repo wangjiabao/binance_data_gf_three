@@ -55,11 +55,11 @@ var (
 			}
 			gtimer.AddSingleton(ctx, time.Second*100, handle4)
 
-			// 15秒/次，测试
-			handle5 := func(ctx context.Context) {
-				serviceBinanceTrader.GetGlobalInfo(ctx)
-			}
-			gtimer.AddSingleton(ctx, time.Second*60, handle5)
+			//// 15秒/次，测试
+			//handle5 := func(ctx context.Context) {
+			//	serviceBinanceTrader.GetGlobalInfo(ctx)
+			//}
+			//gtimer.AddSingleton(ctx, time.Second*60, handle5)
 
 			serviceBinanceTrader.PullAndOrderBinanceByApi(ctx)
 			return nil
