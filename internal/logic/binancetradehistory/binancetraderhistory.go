@@ -542,10 +542,10 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 			//}
 
 		} else if "gate" == vGlobalUsers.Plat {
-			if 0 >= len(vGlobalUsers.OkxId) {
-				fmt.Println("龟兔，变更保证金，用户数据错误：", vGlobalUsers)
-				return true
-			}
+			//if 0 >= len(vGlobalUsers.OkxId) {
+			//	fmt.Println("龟兔，变更保证金，用户数据错误：", vGlobalUsers)
+			//	return true
+			//}
 
 			//if 1 == vGlobalUsers.Dai {
 			//	detail, err = requestGateTraderDetail(vGlobalUsers.OkxId)
@@ -563,7 +563,6 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 				return true
 			}
 
-			fmt.Println(gateUser)
 			detail = gateUser.Total
 			//}
 
@@ -721,7 +720,6 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 					fmt.Println("龟兔，拉取保证金失败，gate：", err, vTmpUserMap)
 				}
 
-				fmt.Println(gateUser)
 				detail = gateUser.Total
 			} else {
 				fmt.Println("初始化，错误用户信息", vTmpUserMap)
