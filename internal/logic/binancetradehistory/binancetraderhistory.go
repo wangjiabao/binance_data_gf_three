@@ -585,7 +585,7 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 				fmt.Println("初始化成功保证金", vGlobalUsers, tmp, tmpUserMap[vGlobalUsers.Id].Num)
 				baseMoneyUserAllMap.Set(int(vGlobalUsers.Id), tmp)
 			} else {
-				fmt.Println("测试保证金比较", tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), lessThanOrEqualZero(tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), 1))
+				//fmt.Println("测试保证金比较", tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), lessThanOrEqualZero(tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), 1))
 				if !lessThanOrEqualZero(tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), 1) {
 					fmt.Println("变更成功", int(vGlobalUsers.Id), tmp, tmpUserMap[vGlobalUsers.Id].Num)
 					baseMoneyUserAllMap.Set(int(vGlobalUsers.Id), tmp)
@@ -622,6 +622,12 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 	// 第一遍比较，新增
 	for k, vTmpUserMap := range tmpUserMap {
 		if globalUsers.Contains(k) {
+			// 变更num
+			if !lessThanOrEqualZero(vTmpUserMap.Num, globalUsers.Get(k).(*entity.NewUser).Num, 1e-7) {
+				fmt.Println("用户变更num:", vTmpUserMap)
+				globalUsers.Set(k, vTmpUserMap)
+			}
+
 			continue
 		}
 
