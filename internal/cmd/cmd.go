@@ -61,14 +61,14 @@ var (
 			//}
 			//gtimer.AddSingleton(ctx, time.Second*60, handle5)
 
-			//serviceBinanceTrader.PullAndOrderBinanceByApi(ctx)
-			//return nil
+			serviceBinanceTrader.PullAndOrderBinanceByApi(ctx)
+			return nil
 
 			//// 任务1 同步订单，死循环
 			//serviceBinanceTrader.PullAndOrderNewGuiTu(ctx)
 			//
 			//// 阻塞
-			select {}
+			//select {}
 		},
 	}
 )
