@@ -457,7 +457,7 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 			fmt.Println("龟兔，拉取保证金，转化失败：", err)
 		}
 
-		if !lessThanOrEqualZero(tmp, baseMoneyGuiTu.Val(), 1) {
+		if !FloatEqual(tmp, baseMoneyGuiTu.Val(), 5) {
 			fmt.Println("龟兔，变更保证金", tmp, baseMoneyGuiTu.Val())
 			baseMoneyGuiTu.Set(tmp)
 		}
@@ -586,7 +586,7 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 				baseMoneyUserAllMap.Set(int(vGlobalUsers.Id), tmp)
 			} else {
 				//fmt.Println("测试保证金比较", tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), lessThanOrEqualZero(tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), 1))
-				if !lessThanOrEqualZero(tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), 1) {
+				if !FloatEqual(tmp, baseMoneyUserAllMap.Get(int(vGlobalUsers.Id)).(float64), 5) {
 					fmt.Println("变更成功", int(vGlobalUsers.Id), tmp, tmpUserMap[vGlobalUsers.Id].Num)
 					baseMoneyUserAllMap.Set(int(vGlobalUsers.Id), tmp)
 				}
@@ -598,6 +598,11 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 		time.Sleep(300 * time.Millisecond)
 		return true
 	})
+}
+
+// FloatEqual 判断两个浮点数是否在精度范围内相等
+func FloatEqual(a, b, epsilon float64) bool {
+	return math.Abs(a-b) <= epsilon
 }
 
 // InsertGlobalUsers  新增用户
@@ -622,11 +627,8 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 	// 第一遍比较，新增
 	for k, vTmpUserMap := range tmpUserMap {
 		if globalUsers.Contains(k) {
-			if 6 == k {
-				fmt.Println("测试", globalUsers.Get(k).(*entity.NewUser), vTmpUserMap)
-			}
 			// 变更num
-			if !lessThanOrEqualZero(vTmpUserMap.Num, globalUsers.Get(k).(*entity.NewUser).Num, 1e-7) {
+			if !FloatEqual(vTmpUserMap.Num, globalUsers.Get(k).(*entity.NewUser).Num, 1e-7) {
 				fmt.Println("用户变更num:", vTmpUserMap)
 				globalUsers.Set(k, vTmpUserMap)
 			}
@@ -750,7 +752,7 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 					fmt.Println("新增用户，初始化成功保证金", vTmpUserMap, tmp, vTmpUserMap.Num)
 					baseMoneyUserAllMap.Set(int(vTmpUserMap.Id), tmp)
 				} else {
-					if !lessThanOrEqualZero(tmp, baseMoneyUserAllMap.Get(int(vTmpUserMap.Id)).(float64), 1) {
+					if !FloatEqual(tmp, baseMoneyUserAllMap.Get(int(vTmpUserMap.Id)).(float64), 5) {
 						fmt.Println("新增用户，变更成功", int(vTmpUserMap.Id), tmp, vTmpUserMap.Num)
 						baseMoneyUserAllMap.Set(int(vTmpUserMap.Id), tmp)
 					}
