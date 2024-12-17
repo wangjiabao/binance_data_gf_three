@@ -502,6 +502,7 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 					fmt.Println("龟兔，拉取保证金失败：", err, vGlobalUsers)
 					return true
 				}
+
 			} else {
 				detail = getBinanceInfo(vGlobalUsers.ApiKey, vGlobalUsers.ApiSecret)
 			}
@@ -570,6 +571,8 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 			fmt.Println("获取平台保证金，错误用户信息", vGlobalUsers)
 			return true
 		}
+
+		fmt.Println("测试拉取保证金", detail, vGlobalUsers)
 
 		if 0 < len(detail) {
 			var tmp float64

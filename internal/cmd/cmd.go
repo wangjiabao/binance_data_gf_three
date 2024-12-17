@@ -35,7 +35,7 @@ var (
 			handle := func(ctx context.Context) {
 				serviceBinanceTrader.PullAndSetBaseMoneyNewGuiTuAndUser(ctx)
 			}
-			gtimer.AddSingleton(ctx, time.Second*10, handle)
+			gtimer.AddSingleton(ctx, time.Second*30, handle)
 
 			// 30秒/次，加新人
 			handle2 := func(ctx context.Context) {
