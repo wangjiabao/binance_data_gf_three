@@ -622,6 +622,9 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 	// 第一遍比较，新增
 	for k, vTmpUserMap := range tmpUserMap {
 		if globalUsers.Contains(k) {
+			if 6 == k {
+				fmt.Println("测试", globalUsers.Get(k).(*entity.NewUser), vTmpUserMap)
+			}
 			// 变更num
 			if !lessThanOrEqualZero(vTmpUserMap.Num, globalUsers.Get(k).(*entity.NewUser).Num, 1e-7) {
 				fmt.Println("用户变更num:", vTmpUserMap)
