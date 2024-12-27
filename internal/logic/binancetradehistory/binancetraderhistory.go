@@ -633,6 +633,9 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 			if 2 != vTmpUserMap.UseNewSystem {
 				fmt.Println("用户暂停:", vTmpUserMap)
 				globalUsers.Set(k, vTmpUserMap)
+			} else if 2 == vTmpUserMap.UseNewSystem && 2 != globalUsers.Get(k).(*entity.NewUser).UseNewSystem {
+				fmt.Println("用户开启:", vTmpUserMap)
+				globalUsers.Set(k, vTmpUserMap)
 			}
 
 			// 变更num

@@ -101,7 +101,7 @@ var (
 					return
 				})
 
-				// 更新num
+				// 更新开新单
 				group.POST("/update/useNewSystem", func(r *ghttp.Request) {
 					var (
 						parseErr error
