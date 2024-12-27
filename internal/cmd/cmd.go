@@ -4,8 +4,11 @@ import (
 	"binance_data_gf/internal/service"
 	"context"
 	"fmt"
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gtimer"
+	"strconv"
 	"time"
 )
 
@@ -21,17 +24,15 @@ var (
 		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
 			serviceBinanceTrader := service.BinanceTraderHistory()
 
-			// 初始化根据数据库现有人
+			// 初始化币种
 			if !serviceBinanceTrader.UpdateCoinInfo(ctx) {
 				fmt.Println("初始化币种失败，fail")
 				return nil
 			}
 			fmt.Println("初始化币种成功，ok")
 
-			// 拉龟兔的保证金
+			// 拉取保证金，30秒/次，拉取保证金
 			serviceBinanceTrader.PullAndSetBaseMoneyNewGuiTuAndUser(ctx)
-
-			// 10秒/次，拉取保证金
 			handle := func(ctx context.Context) {
 				serviceBinanceTrader.PullAndSetBaseMoneyNewGuiTuAndUser(ctx)
 			}
@@ -49,26 +50,126 @@ var (
 			}
 			gtimer.AddSingleton(ctx, time.Second*300, handle3)
 
-			// 100秒/次，仓位信息落库
-			handle4 := func(ctx context.Context) {
-				serviceBinanceTrader.UpdateKeyPosition(ctx)
-			}
-			gtimer.AddSingleton(ctx, time.Second*100, handle4)
+			// 开启任务协程
+			go serviceBinanceTrader.PullAndOrderBinanceByApi(ctx)
 
-			//// 15秒/次，测试
-			//handle5 := func(ctx context.Context) {
-			//	serviceBinanceTrader.GetGlobalInfo(ctx)
-			//}
-			//gtimer.AddSingleton(ctx, time.Second*60, handle5)
+			// 开启http管理服务
+			s := g.Server()
+			s.Group("/api", func(group *ghttp.RouterGroup) {
+				// 查询num
+				group.GET("/nums", func(r *ghttp.Request) {
+					res := serviceBinanceTrader.GetSystemUserNum(ctx)
 
-			serviceBinanceTrader.PullAndOrderBinanceByApi(ctx)
+					responseData := make([]*g.MapStrAny, 0)
+					for k, v := range res {
+						responseData = append(responseData, &g.MapStrAny{k: v})
+					}
+
+					r.Response.WriteJson(responseData)
+					return
+				})
+
+				// 更新num
+				group.POST("/update/num", func(r *ghttp.Request) {
+					var (
+						parseErr error
+						setErr   error
+						num      float64
+					)
+					num, parseErr = strconv.ParseFloat(r.PostFormValue("num"), 64)
+					if nil != parseErr || 0 >= num {
+						r.Response.WriteJson(g.Map{
+							"code": -1,
+						})
+
+						return
+					}
+
+					setErr = serviceBinanceTrader.SetSystemUserNum(ctx, r.PostFormValue("apiKey"), num)
+					if nil != setErr {
+						r.Response.WriteJson(g.Map{
+							"code": -2,
+						})
+
+						return
+					}
+
+					r.Response.WriteJson(g.Map{
+						"code": 1,
+					})
+
+					return
+				})
+
+				// 查询用户系统仓位
+				group.GET("/user/positions", func(r *ghttp.Request) {
+					res := serviceBinanceTrader.GetSystemUserPositions(ctx, r.Get("apiKey").String())
+
+					responseData := make([]*g.MapStrAny, 0)
+					for k, v := range res {
+						responseData = append(responseData, &g.MapStrAny{k: v})
+					}
+
+					r.Response.WriteJson(responseData)
+					return
+				})
+
+				// 用户设置仓位
+				group.POST("/user/update/position", func(r *ghttp.Request) {
+					var (
+						parseErr     error
+						num          float64
+						system       uint64
+						allCloseGate uint64
+					)
+					num, parseErr = strconv.ParseFloat(r.PostFormValue("num"), 64)
+					if nil != parseErr || 0 >= num {
+						r.Response.WriteJson(g.Map{
+							"code": -1,
+						})
+
+						return
+					}
+
+					system, parseErr = strconv.ParseUint(r.PostFormValue("system"), 10, 64)
+					if nil != parseErr || 0 > system {
+						r.Response.WriteJson(g.Map{
+							"code": -1,
+						})
+
+						return
+					}
+
+					allCloseGate, parseErr = strconv.ParseUint(r.PostFormValue("allCloseGate"), 10, 64)
+					if nil != parseErr || 0 > allCloseGate {
+						r.Response.WriteJson(g.Map{
+							"code": -1,
+						})
+
+						return
+					}
+
+					r.Response.WriteJson(g.Map{
+						"code": serviceBinanceTrader.SetSystemUserPosition(
+							ctx,
+							system,
+							allCloseGate,
+							r.PostFormValue("apiKey"),
+							r.PostFormValue("symbol"),
+							r.PostFormValue("side"),
+							r.PostFormValue("positionSide"),
+							num,
+						),
+					})
+
+					return
+				})
+			})
+
+			s.SetPort(8100)
+			s.Run()
+
 			return nil
-
-			//// 任务1 同步订单，死循环
-			//serviceBinanceTrader.PullAndOrderNewGuiTu(ctx)
-			//
-			//// 阻塞
-			//select {}
 		},
 	}
 )

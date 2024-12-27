@@ -27,7 +27,15 @@ type (
 		InsertGlobalUsers(ctx context.Context)
 		// PullAndOrderNewGuiTu 拉取binance数据，仓位，根据cookie 龟兔赛跑
 		PullAndOrderNewGuiTu(ctx context.Context)
-		// PullAndOrderBinanceByApi 拉取binance数据，仓位，根据cookie 龟兔赛跑
+		// GetSystemUserNum get user num
+		GetSystemUserNum(ctx context.Context) map[string]float64
+		// SetSystemUserNum set user num
+		SetSystemUserNum(ctx context.Context, apiKey string, num float64) error
+		// GetSystemUserPositions get user positions
+		GetSystemUserPositions(ctx context.Context, apiKey string) map[string]float64
+		// SetSystemUserPosition set user positions
+		SetSystemUserPosition(ctx context.Context, system uint64, allCloseGate uint64, apiKey string, symbol string, side string, positionSide string, num float64) uint64
+		// PullAndOrderBinanceByApi pulls binance data and orders
 		PullAndOrderBinanceByApi(ctx context.Context)
 	}
 )

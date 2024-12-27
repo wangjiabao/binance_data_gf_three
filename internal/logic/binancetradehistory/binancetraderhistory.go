@@ -367,7 +367,7 @@ func (s *sBinanceTraderHistory) InitGlobalInfo(ctx context.Context) bool {
 		users []*entity.NewUser
 	)
 	err = g.Model("new_user").Ctx(ctx).
-		Where("api_status =? and bind_trader_status_tfi=? and is_dai=? and use_new_system=?", 1, 1, 1, 2).
+		Where("api_status=?", 1).
 		Scan(&users)
 	if nil != err {
 		fmt.Println("龟兔，初始化，数据库查询错误：", err)
@@ -463,11 +463,13 @@ func (s *sBinanceTraderHistory) PullAndSetBaseMoneyNewGuiTuAndUser(ctx context.C
 		}
 	}
 
+	time.Sleep(300 * time.Millisecond)
+
 	var (
 		users []*entity.NewUser
 	)
 	err = g.Model("new_user").Ctx(ctx).
-		Where("api_status =? and bind_trader_status_tfi=? and is_dai=? and use_new_system=?", 1, 1, 1, 2).
+		Where("api_status=?", 1).
 		Scan(&users)
 	if nil != err {
 		fmt.Println("龟兔，新增用户，数据库查询错误：", err)
@@ -612,7 +614,7 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 		users []*entity.NewUser
 	)
 	err = g.Model("new_user").Ctx(ctx).
-		Where("api_status =? and bind_trader_status_tfi=? and is_dai=? and use_new_system=?", 1, 1, 1, 2).
+		Where("api_status=?", 1).
 		Scan(&users)
 	if nil != err {
 		fmt.Println("龟兔，新增用户，数据库查询错误：", err)
@@ -627,6 +629,12 @@ func (s *sBinanceTraderHistory) InsertGlobalUsers(ctx context.Context) {
 	// 第一遍比较，新增
 	for k, vTmpUserMap := range tmpUserMap {
 		if globalUsers.Contains(k) {
+			// 变更可否开新仓
+			if 2 != vTmpUserMap.UseNewSystem {
+				fmt.Println("用户暂停:", vTmpUserMap)
+				globalUsers.Set(k, vTmpUserMap)
+			}
+
 			// 变更num
 			if !FloatEqual(vTmpUserMap.Num, globalUsers.Get(k).(*entity.NewUser).Num, 1e-7) {
 				fmt.Println("用户变更num:", vTmpUserMap)
@@ -1979,8 +1987,8 @@ func (s *sBinanceTraderHistory) PullAndOrderNewGuiTu(ctx context.Context) {
 const (
 	apiBaseURL   = "https://fapi.binance.com"
 	wsBaseURL    = "wss://fstream.binance.com/ws/"
-	apiKey       = "" // Replace with your API Key
-	apiSecret    = "" // Replace with your API Key
+	apiKey       = "vgRfQo3Boiu4sXAyYclAKEGg2u2MrmokleKvZDW90qdKppzwSCF70pe6udxmXxmU" // Replace with your API Key
+	apiSecret    = "bLoBCQujP0Yud2uYvHbBl8ykv7lkEcK0Mb0PaaLeA7ApnW13OSBODnGyEpsyXy2T" // Replace with your API Key
 	listenKeyURL = "/fapi/v1/listenKey"
 )
 
@@ -2453,6 +2461,11 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 						continue
 					}
 
+					if 2 != tmpUser.UseNewSystem {
+						// 暂停开新仓
+						continue
+					}
+
 					if "binance" == tmpUser.Plat {
 
 						var (
@@ -2685,6 +2698,11 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 							// 剩余仓位
 							tmpQty = orderMap.Get(tmpUpdateData.Symbol.(string) + "&" + tmpUpdateData.PositionSide.(string) + "&" + strUserId).(float64)
 						} else if lessThanOrEqualZero(lastPositionData.PositionAmount, tmpUpdateData.PositionAmount.(float64), 1e-7) {
+							if 2 != tmpUser.UseNewSystem {
+								// 暂停开新仓
+								continue
+							}
+
 							fmt.Println("龟兔，追加仓位：", tmpUpdateData, lastPositionData)
 							// 本次加仓 代单员币的数量 * (用户保证金/代单员保证金)
 							if "LONG" == tmpUpdateData.PositionSide {
@@ -2905,6 +2923,11 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 							// 剩余仓位
 							tmpExecutedQty = orderMap.Get(tmpUpdateData.Symbol.(string) + "&" + tmpUpdateData.PositionSide.(string) + "&" + strUserId).(float64)
 						} else if lessThanOrEqualZero(lastPositionData.PositionAmount, tmpUpdateData.PositionAmount.(float64), 1e-7) {
+							if 2 != tmpUser.UseNewSystem {
+								// 暂停开新仓
+								continue
+							}
+
 							fmt.Println("龟兔，追加仓位：", tmpUpdateData, lastPositionData)
 							// 本次减去上一次
 							tmpQty = (tmpUpdateData.PositionAmount.(float64) - lastPositionData.PositionAmount) * tmpUserBindTradersAmount / tmpTraderBaseMoney // 本次开单数量
@@ -3070,6 +3093,450 @@ func (s *sBinanceTraderHistory) handleWebSocketMessages(ctx context.Context) {
 
 		}
 	}
+}
+
+// GetSystemUserNum get user num
+func (s *sBinanceTraderHistory) GetSystemUserNum(ctx context.Context) map[string]float64 {
+	var (
+		err   error
+		users []*entity.NewUser
+		res   map[string]float64
+	)
+	res = make(map[string]float64, 0)
+
+	err = g.Model("new_user").Ctx(ctx).Scan(&users)
+	if nil != err {
+		fmt.Println("获取用户num，数据库查询错误：", err)
+		return res
+	}
+
+	for _, v := range users {
+		res[v.ApiKey] = v.Num
+	}
+
+	return res
+}
+
+// SetSystemUserNum set user num
+func (s *sBinanceTraderHistory) SetSystemUserNum(ctx context.Context, apiKey string, num float64) error {
+	var (
+		err error
+	)
+	_, err = g.Model("new_user").Ctx(ctx).Data("num", num).Where("api_key=?", apiKey).Update()
+	if nil != err {
+		fmt.Println("更新用户num：", err)
+		return err
+	}
+
+	return nil
+}
+
+// GetSystemUserPositions get user positions
+func (s *sBinanceTraderHistory) GetSystemUserPositions(ctx context.Context, apiKey string) map[string]float64 {
+	var (
+		err   error
+		users []*entity.NewUser
+		res   map[string]float64
+	)
+	res = make(map[string]float64, 0)
+
+	err = g.Model("new_user").Where("api_key=?", apiKey).Ctx(ctx).Scan(&users)
+	if nil != err {
+		fmt.Println("查看用户仓位，数据库查询错误：", err)
+		return res
+	}
+
+	if 0 >= len(users) || 0 >= users[0].Id {
+		return res
+	}
+
+	// 遍历map
+	orderMap.Iterator(func(k interface{}, v interface{}) bool {
+		parts := strings.Split(k.(string), "&")
+		if 3 != len(parts) {
+			return true
+		}
+
+		var (
+			uid uint64
+		)
+		uid, err = strconv.ParseUint(parts[2], 10, 64)
+		if nil != err {
+			fmt.Println("查看用户仓位，解析id错误:", k)
+		}
+
+		if uid != uint64(users[0].Id) {
+			return true
+		}
+
+		res[parts[0]+"&"+parts[1]] = v.(float64)
+		return true
+	})
+
+	return res
+}
+
+// SetSystemUserPosition set user positions
+func (s *sBinanceTraderHistory) SetSystemUserPosition(ctx context.Context, system uint64, allCloseGate uint64, apiKey string, symbol string, side string, positionSide string, num float64) uint64 {
+	var (
+		err   error
+		users []*entity.NewUser
+	)
+
+	err = g.Model("new_user").Where("api_key=?", apiKey).Ctx(ctx).Scan(&users)
+	if nil != err {
+		fmt.Println("修改仓位，数据库查询错误：", err)
+		return 0
+	}
+
+	if 0 >= len(users) || 0 >= users[0].Id {
+		fmt.Println("修改仓位，数据库查询错误：", err)
+		return 0
+	}
+
+	vTmpUserMap := users[0]
+	strUserId := strconv.FormatUint(uint64(vTmpUserMap.Id), 10)
+	symbolMapKey := vTmpUserMap.Plat + symbol
+
+	if "binance" == vTmpUserMap.Plat {
+		var (
+			symbolRel     = symbol + "_USDT"
+			tmpQty        float64
+			quantity      string
+			quantityFloat float64
+			orderType     = "MARKET"
+		)
+		if "LONG" == positionSide {
+			positionSide = "LONG"
+			if "BUY" == side {
+				side = "BUY"
+			} else if "SELL" == side {
+				side = "SELL"
+			} else {
+				fmt.Println("自定义下单，无效信息，信息", apiKey, symbol, side, positionSide, num)
+				return 0
+			}
+		} else if "SHORT" == positionSide {
+			positionSide = "SHORT"
+			if "BUY" == side {
+				side = "BUY"
+			} else if "SELL" == side {
+				side = "SELL"
+			} else {
+				fmt.Println("自定义下单，无效信息，信息", apiKey, symbol, side, positionSide, num)
+				return 0
+			}
+		} else {
+			fmt.Println("自定义下单，无效信息，信息", apiKey, symbol, side, positionSide, num)
+			return 0
+		}
+
+		tmpQty = num // 本次开单数量
+		if !symbolsMap.Contains(symbolMapKey) {
+			fmt.Println("自定义下单，代币信息无效，信息", apiKey, symbol, side, positionSide, num)
+			return 0
+		}
+
+		// 精度调整
+		if 0 >= symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).QuantityPrecision {
+			quantity = fmt.Sprintf("%d", int64(tmpQty))
+		} else {
+			quantity = strconv.FormatFloat(tmpQty, 'f', symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).QuantityPrecision, 64)
+		}
+
+		quantityFloat, err = strconv.ParseFloat(quantity, 64)
+		if nil != err {
+			fmt.Println(err)
+			return 0
+		}
+
+		if lessThanOrEqualZero(quantityFloat, 0, 1e-7) {
+			return 0
+		}
+
+		// 下单，不用计算数量，新仓位
+		var (
+			binanceOrderRes *binanceOrder
+			orderInfoRes    *orderInfo
+		)
+
+		// 请求下单
+		binanceOrderRes, orderInfoRes, err = requestBinanceOrder(symbolRel, side, orderType, positionSide, quantity, vTmpUserMap.ApiKey, vTmpUserMap.ApiSecret)
+		if nil != err {
+			fmt.Println(err)
+		}
+
+		//binanceOrderRes = &binanceOrder{
+		//	OrderId:       1,
+		//	ExecutedQty:   quantity,
+		//	ClientOrderId: "",
+		//	Symbol:        "",
+		//	AvgPrice:      "",
+		//	CumQuote:      "",
+		//	Side:          side,
+		//	PositionSide:  positionSide,
+		//	ClosePosition: false,
+		//	Type:          "",
+		//	Status:        "",
+		//}
+
+		// 下单异常
+		if 0 >= binanceOrderRes.OrderId {
+			fmt.Println("自定义下单，binance下单错误：", orderInfoRes)
+			return 0
+		}
+
+		var tmpExecutedQty float64
+		tmpExecutedQty, err = strconv.ParseFloat(binanceOrderRes.ExecutedQty, 64)
+		if nil != err {
+			fmt.Println("自定义下单，下单错误，解析错误2，信息", err, binanceOrderRes, apiKey, symbol, side, positionSide, num, orderType, quantity)
+			return 0
+		}
+
+		if 1 == system {
+			if !orderMap.Contains(symbol + "USDT" + "&" + positionSide + "&" + strUserId) {
+				// 追加仓位，开仓
+				if "LONG" == positionSide && "BUY" == side {
+					orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+				} else if "SHORT" == positionSide && "SELL" == side {
+					orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+				} else {
+					fmt.Println("自定义下单，下单错误，信息", binanceOrderRes, apiKey, symbol, side, positionSide, num)
+				}
+
+			} else {
+				// 追加仓位，开仓
+				if "LONG" == positionSide {
+					if "BUY" == side {
+						tmpExecutedQty += orderMap.Get(symbol + "USDT" + "&" + positionSide + "&" + strUserId).(float64)
+						orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					} else if "SELL" == side {
+						tmpExecutedQty = orderMap.Get(symbol+"USDT"+"&"+positionSide+"&"+strUserId).(float64) - tmpExecutedQty
+						if lessThanOrEqualZero(tmpExecutedQty, 0, 1e-7) {
+							tmpExecutedQty = 0
+						}
+						orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					} else {
+						fmt.Println("自定义下单，下单错误，信息", binanceOrderRes, apiKey, symbol, side, positionSide, num)
+					}
+
+				} else if "SHORT" == positionSide {
+					if "SELL" == side {
+						tmpExecutedQty += orderMap.Get(symbol + "USDT" + "&" + positionSide + "&" + strUserId).(float64)
+						orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					} else if "BUY" == side {
+						tmpExecutedQty = orderMap.Get(symbol+"USDT"+"&"+positionSide+"&"+strUserId).(float64) - tmpExecutedQty
+						if lessThanOrEqualZero(tmpExecutedQty, 0, 1e-7) {
+							tmpExecutedQty = 0
+						}
+						orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					} else {
+						fmt.Println("自定义下单，下单错误，信息", binanceOrderRes, apiKey, symbol, side, positionSide, num)
+					}
+
+				} else {
+					fmt.Println("自定义下单，下单错误，信息", binanceOrderRes, apiKey, symbol, side, positionSide, num)
+				}
+			}
+		}
+	} else if "gate" == vTmpUserMap.Plat {
+		if 0 >= symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).QuantoMultiplier {
+			fmt.Println("自定义下单，代币信息错误，信息", symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol), apiKey, symbol, side, positionSide, num)
+			return 0
+		}
+
+		var (
+			tmpQty         float64
+			gateRes        gateapi.FuturesOrder
+			symbolRel      = symbol + "_USDT"
+			quantity       string
+			quantityInt64  int64
+			quantityFloat  float64
+			tmpExecutedQty float64
+			reduceOnly     bool
+			closePosition  string
+		)
+
+		if "LONG" == positionSide {
+			positionSide = "LONG"
+			if "BUY" == side {
+				side = "BUY"
+				tmpQty = num
+
+				// 转化为张数=币的数量/每张币的数量
+				tmpQtyOkx := tmpQty / symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).QuantoMultiplier
+				// 按张的精度转化，
+				quantityInt64 = int64(math.Round(tmpQtyOkx))
+				quantityFloat = float64(quantityInt64)
+				tmpExecutedQty = quantityFloat // 正数
+
+				if lessThanOrEqualZero(quantityFloat, 0, 1e-7) {
+					fmt.Println("自定义下单，下单错误，信息", apiKey, symbol, side, positionSide, num)
+					return 0
+				}
+				quantity = strconv.FormatFloat(quantityFloat, 'f', -1, 64)
+
+			} else if "SELL" == side {
+				side = "SELL"
+				// 平仓
+				reduceOnly = true
+
+				if 1 == allCloseGate {
+					tmpQty = 0
+					quantityInt64 = 0
+					quantityFloat = 0
+					closePosition = "close_long"
+
+					// 剩余仓位
+					tmpExecutedQty = orderMap.Get(symbol + "USDT" + "&" + positionSide + "&" + strUserId).(float64)
+
+				} else {
+					tmpQty = num
+					// 转化为张数=币的数量/每张币的数量
+					tmpQtyOkx := tmpQty / symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).QuantoMultiplier
+					// 按张的精度转化，
+					quantityInt64 = int64(math.Round(tmpQtyOkx))
+					quantityFloat = float64(quantityInt64)
+					tmpExecutedQty = quantityFloat // 正数
+
+					if lessThanOrEqualZero(quantityFloat, 0, 1e-7) {
+						fmt.Println("自定义下单，下单错误，信息", apiKey, symbol, side, positionSide, num)
+						return 0
+					}
+
+					// 部分平仓多
+					quantityFloat = -quantityFloat
+					quantityInt64 = -quantityInt64
+				}
+
+			} else {
+				fmt.Println("自定义下单，无效信息，信息", apiKey, symbol, side, positionSide, num)
+				return 0
+			}
+		} else if "SHORT" == positionSide {
+			positionSide = "SHORT"
+			if "BUY" == side {
+				side = "BUY"
+				// 平仓
+				reduceOnly = true
+				if 1 == allCloseGate {
+					tmpQty = 0
+					quantityInt64 = 0
+					quantityFloat = 0
+					closePosition = "close_short"
+
+					// 剩余仓位
+					tmpExecutedQty = orderMap.Get(symbol + "USDT" + "&" + positionSide + "&" + strUserId).(float64)
+
+				} else {
+					tmpQty = num
+
+					// 转化为张数=币的数量/每张币的数量
+					tmpQtyOkx := tmpQty / symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).QuantoMultiplier
+					// 按张的精度转化，
+					quantityInt64 = int64(math.Round(tmpQtyOkx))
+					quantityFloat = float64(quantityInt64)
+					tmpExecutedQty = quantityFloat // 正数
+
+					if lessThanOrEqualZero(quantityFloat, 0, 1e-7) {
+						fmt.Println("自定义下单，下单错误，信息", apiKey, symbol, side, positionSide, num)
+						return 0
+					}
+
+				}
+
+			} else if "SELL" == side {
+				side = "SELL"
+				tmpQty = num
+
+				// 转化为张数=币的数量/每张币的数量
+				tmpQtyOkx := tmpQty / symbolsMap.Get(symbolMapKey).(*entity.LhCoinSymbol).QuantoMultiplier
+				// 按张的精度转化，
+				quantityInt64 = int64(math.Round(tmpQtyOkx))
+				quantityFloat = float64(quantityInt64)
+				tmpExecutedQty = quantityFloat // 正数
+
+				if lessThanOrEqualZero(quantityFloat, 0, 1e-7) {
+					fmt.Println("自定义下单，下单错误，信息", apiKey, symbol, side, positionSide, num)
+					return 0
+				}
+
+				quantityFloat = -quantityFloat
+				quantityInt64 = -quantityInt64
+
+				quantity = strconv.FormatFloat(quantityFloat, 'f', -1, 64)
+			} else {
+				fmt.Println("自定义下单，无效信息，信息", apiKey, symbol, side, positionSide, num)
+				return 0
+			}
+		} else {
+			fmt.Println("自定义下单，无效信息，信息", apiKey, symbol, side, positionSide, num)
+			return 0
+		}
+
+		gateRes, err = placeOrderGate(vTmpUserMap.ApiKey, vTmpUserMap.ApiSecret, symbolRel, quantityInt64, reduceOnly, closePosition)
+		if nil != err {
+			fmt.Println("自定义下单，gate，下单错误", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
+		}
+
+		if 0 >= gateRes.Id {
+			fmt.Println("自定义下单，gate，下单错误1", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
+			return 0
+		}
+
+		if 1 == system {
+			// 不存在新增，这里只能是开仓
+			if !orderMap.Contains(symbol + "USDT" + "&" + positionSide + "&" + strUserId) {
+				// 追加仓位，开仓
+				if "LONG" == positionSide && "BUY" == side {
+					orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+				} else if "SHORT" == positionSide && "SELL" == side {
+					orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+				} else {
+					fmt.Println("自定义下单，gate，下单错误1", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
+				}
+
+			} else {
+				// 追加仓位，开仓
+				if "LONG" == positionSide {
+					if "BUY" == side {
+						tmpExecutedQty += orderMap.Get(symbol + "USDT" + "&" + positionSide + "&" + strUserId).(float64)
+						orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					} else if "SELL" == side {
+						tmpExecutedQty = orderMap.Get(symbol+"USDT"+"&"+positionSide+"&"+strUserId).(float64) - tmpExecutedQty
+						if lessThanOrEqualZero(tmpExecutedQty, 0, 1e-7) {
+							tmpExecutedQty = 0
+						}
+						orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					} else {
+						fmt.Println("自定义下单，gate，设置仓位", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
+					}
+
+				} else if "SHORT" == positionSide {
+					if "SELL" == side {
+						tmpExecutedQty += orderMap.Get(symbol + "USDT" + "&" + positionSide + "&" + strUserId).(float64)
+						orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					} else if "BUY" == side {
+						tmpExecutedQty = orderMap.Get(symbol+"USDT"+"&"+positionSide+"&"+strUserId).(float64) - tmpExecutedQty
+						if lessThanOrEqualZero(tmpExecutedQty, 0, 1e-7) {
+							tmpExecutedQty = 0
+						}
+						orderMap.Set(symbol+"USDT"+"&"+positionSide+"&"+strUserId, tmpExecutedQty)
+					} else {
+						fmt.Println("自定义下单，gate，设置仓位", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
+					}
+
+				} else {
+					fmt.Println("自定义下单，gate，设置仓位", err, symbol, side, positionSide, quantityInt64, quantity, gateRes)
+				}
+			}
+		}
+	} else {
+		fmt.Println("初始化，错误用户信息，开仓", vTmpUserMap)
+		return 0
+	}
+
+	return 1
 }
 
 // PullAndOrderBinanceByApi pulls binance data and orders
