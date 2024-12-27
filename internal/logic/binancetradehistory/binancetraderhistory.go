@@ -3131,6 +3131,20 @@ func (s *sBinanceTraderHistory) SetSystemUserNum(ctx context.Context, apiKey str
 	return nil
 }
 
+// SetUseNewSystem set user num
+func (s *sBinanceTraderHistory) SetUseNewSystem(ctx context.Context, apiKey string, useNewSystem uint64) error {
+	var (
+		err error
+	)
+	_, err = g.Model("new_user").Ctx(ctx).Data("use_new_system", useNewSystem).Where("api_key=?", apiKey).Update()
+	if nil != err {
+		fmt.Println("更新用户num：", err)
+		return err
+	}
+
+	return nil
+}
+
 // GetSystemUserPositions get user positions
 func (s *sBinanceTraderHistory) GetSystemUserPositions(ctx context.Context, apiKey string) map[string]float64 {
 	var (

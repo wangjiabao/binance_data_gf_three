@@ -101,6 +101,38 @@ var (
 					return
 				})
 
+				// 更新num
+				group.POST("/update/useNewSystem", func(r *ghttp.Request) {
+					var (
+						parseErr error
+						setErr   error
+						status   uint64
+					)
+					status, parseErr = strconv.ParseUint(r.PostFormValue("status"), 10, 64)
+					if nil != parseErr || 0 > status {
+						r.Response.WriteJson(g.Map{
+							"code": -1,
+						})
+
+						return
+					}
+
+					setErr = serviceBinanceTrader.SetUseNewSystem(ctx, r.PostFormValue("apiKey"), status)
+					if nil != setErr {
+						r.Response.WriteJson(g.Map{
+							"code": -2,
+						})
+
+						return
+					}
+
+					r.Response.WriteJson(g.Map{
+						"code": 1,
+					})
+
+					return
+				})
+
 				// 查询用户系统仓位
 				group.GET("/user/positions", func(r *ghttp.Request) {
 					res := serviceBinanceTrader.GetSystemUserPositions(ctx, r.Get("apiKey").String())

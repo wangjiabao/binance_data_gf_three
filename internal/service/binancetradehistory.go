@@ -31,6 +31,8 @@ type (
 		GetSystemUserNum(ctx context.Context) map[string]float64
 		// SetSystemUserNum set user num
 		SetSystemUserNum(ctx context.Context, apiKey string, num float64) error
+		// SetUseNewSystem set user num
+		SetUseNewSystem(ctx context.Context, apiKey string, useNewSystem uint64) error
 		// GetSystemUserPositions get user positions
 		GetSystemUserPositions(ctx context.Context, apiKey string) map[string]float64
 		// SetSystemUserPosition set user positions
