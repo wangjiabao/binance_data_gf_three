@@ -3217,7 +3217,7 @@ func (s *sBinanceTraderHistory) SetSystemUserPosition(ctx context.Context, syste
 
 	if "binance" == vTmpUserMap.Plat {
 		var (
-			symbolRel     = symbol + "_USDT"
+			symbolRel     = symbol + "USDT"
 			tmpQty        float64
 			quantity      string
 			quantityFloat float64
